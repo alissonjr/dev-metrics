@@ -654,12 +654,35 @@ def run_sync() -> None:
 
 # ── Bootstrap ─────────────────────────────────────────────────────────────────
 
-def validate_env() -> None:
-    missing = [v for v in ["GITLAB_URL", "GITLAB_TOKEN", "GITLAB_GROUP_ID", "DATABASE_URL"]
-               if not os.environ.get(v)]
-    if missing:
-        log.error("Variáveis de ambiente obrigatórias ausentes: %s", ", ".join(missing))
+def validate_env() -> bool:
+    """
+    Retorna True se o coletor deve rodar; False se está desativado por falta
+    completa de configuração GitLab. Sai com erro em config parcial ou se
+    DATABASE_URL faltar.
+    """
+    if not os.environ.get("DATABASE_URL"):
+        log.error("DATABASE_URL ausente — verifique docker-compose.yml.")
         sys.exit(1)
+
+    user_vars = ["GITLAB_URL", "GITLAB_TOKEN", "GITLAB_GROUP_ID"]
+    set_vars = [v for v in user_vars if os.environ.get(v)]
+
+    if not set_vars:
+        return False  # totalmente sem config — coletor desativado
+
+    missing = [v for v in user_vars if not os.environ.get(v)]
+    if missing:
+        log.error("Configuração GitLab incompleta. Faltam: %s", ", ".join(missing))
+        log.error("Preencha todas as variáveis GitLab no .env, ou deixe todas vazias para desativar este coletor.")
+        sys.exit(1)
+    return True
+
+
+def run_disabled_loop() -> None:
+    log.warning("Coletor GitLab desativado: GITLAB_URL/GITLAB_TOKEN/GITLAB_GROUP_ID não configurados no .env.")
+    log.warning("Para ativar: preencha as variáveis e rode `make sync-gitlab`.")
+    while True:
+        time.sleep(3600)
 
 
 def wait_for_db(retries: int = 20, delay: int = 5) -> None:
@@ -677,7 +700,9 @@ def wait_for_db(retries: int = 20, delay: int = 5) -> None:
 
 
 def main() -> None:
-    validate_env()
+    if not validate_env():
+        run_disabled_loop()
+        return
     wait_for_db()
 
     # Inicializa schema

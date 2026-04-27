@@ -124,6 +124,11 @@ Variáveis opcionais (`SYNC_INTERVAL_HOURS`, `JIRA_SYNC_INTERVAL_HOURS`,
 `HISTORY_DAYS`, `LOG_LEVEL`, `JIRA_STORY_POINTS_FIELD`,
 `JIRA_ACTIVE_CATEGORIES`) estão documentadas no `.env.example`.
 
+> **Cada coletor é independente.** Se você só usa GitLab, deixe todas as
+> variáveis `JIRA_*` em branco — o container `metrics-jira-etl` vai logar
+> "desativado" e dormir, sem afetar o resto da stack. O mesmo vale para o
+> sentido contrário.
+
 ### Token GitLab
 
 1. Acesse **GitLab > User Settings > Access Tokens**
