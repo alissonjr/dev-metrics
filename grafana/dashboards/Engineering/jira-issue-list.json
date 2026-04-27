@@ -1,0 +1,277 @@
+{
+  "title": "Jira: Lista de Issues",
+  "uid": "jira-issue-list",
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "",
+  "time": {
+    "from": "now-90d",
+    "to": "now"
+  },
+  "timezone": "browser",
+  "tags": [
+    "jira",
+    "drill-down"
+  ],
+  "editable": true,
+  "graphTooltip": 0,
+  "links": [
+    {
+      "title": "← Voltar ao Jira Kanban Metrics",
+      "type": "link",
+      "url": "/d/jira-kanban-metrics",
+      "icon": "arrow-left",
+      "targetBlank": false
+    }
+  ],
+  "annotations": {
+    "list": []
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "jira_url",
+        "label": "Jira URL",
+        "type": "constant",
+        "query": "https://your-team.atlassian.net",
+        "current": {
+          "text": "https://your-team.atlassian.net",
+          "value": "https://your-team.atlassian.net"
+        },
+        "hide": 2
+      },
+      {
+        "name": "assignee_filter",
+        "label": "Colaborador",
+        "type": "textbox",
+        "current": {
+          "text": ".*",
+          "value": ".*"
+        },
+        "hide": 0
+      },
+      {
+        "name": "status_filter",
+        "label": "Status",
+        "type": "textbox",
+        "current": {
+          "text": ".*",
+          "value": ".*"
+        },
+        "hide": 0
+      },
+      {
+        "name": "status_cat_filter",
+        "label": "Categoria Status",
+        "type": "textbox",
+        "current": {
+          "text": ".*",
+          "value": ".*"
+        },
+        "hide": 0
+      },
+      {
+        "name": "project_filter",
+        "label": "Projeto",
+        "type": "textbox",
+        "current": {
+          "text": ".*",
+          "value": ".*"
+        },
+        "hide": 0
+      },
+      {
+        "name": "issue_type_filter",
+        "label": "Tipo",
+        "type": "textbox",
+        "current": {
+          "text": ".*",
+          "value": ".*"
+        },
+        "hide": 0
+      },
+      {
+        "name": "resolved_filter",
+        "label": "Somente Resolvidos",
+        "type": "custom",
+        "query": "todos,resolvidos,abertos",
+        "options": [
+          {
+            "text": "Todos",
+            "value": "todos",
+            "selected": true
+          },
+          {
+            "text": "Resolvidos",
+            "value": "resolvidos"
+          },
+          {
+            "text": "Em Aberto",
+            "value": "abertos"
+          }
+        ],
+        "current": {
+          "text": "Todos",
+          "value": "todos"
+        },
+        "hide": 0,
+        "includeAll": false,
+        "multi": false
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Issues",
+      "type": "table",
+      "gridPos": {
+        "h": 24,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "gitlab-metrics"
+      },
+      "options": {
+        "sortBy": [
+          {
+            "displayName": "Criado em",
+            "desc": true
+          }
+        ],
+        "cellHeight": "sm",
+        "footer": {
+          "show": true,
+          "reducer": [
+            "count"
+          ],
+          "fields": [
+            "Card"
+          ]
+        },
+        "showHeader": true
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "left",
+            "inspect": true
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Card"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 100
+              },
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Abrir no Jira",
+                    "url": "${jira_url}/browse/${__data.fields.Card}",
+                    "targetBlank": true
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Título"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 350
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "SP"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 50
+              },
+              {
+                "id": "custom.align",
+                "value": "center"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Status"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 160
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": ".*Time.*|.*Lead.*|.*Cycle.*"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "h"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 48
+                    },
+                    {
+                      "color": "red",
+                      "value": 168
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "custom.displayMode",
+                "value": "color-background-solid"
+              }
+            ]
+          }
+        ]
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT\n  ji.issue_key AS \"Card\",\n  LEFT(ji.summary, 80) AS \"Título\",\n  ji.issue_type AS \"Tipo\",\n  ji.project_key AS \"Projeto\",\n  ji.status AS \"Status\",\n  ji.status_category AS \"Categoria\",\n  COALESCE(ji.assignee, '(sem responsável)') AS \"Responsável\",\n  COALESCE(ji.story_points::text, '-') AS \"SP\",\n  ji.priority AS \"Prioridade\",\n  TO_CHAR(ji.created_at AT TIME ZONE 'America/Sao_Paulo', 'DD/MM/YYYY HH24:MI') AS \"Criado em\",\n  TO_CHAR(ji.resolved_at AT TIME ZONE 'America/Sao_Paulo', 'DD/MM/YYYY HH24:MI') AS \"Resolvido em\",\n  ROUND(ji.lead_time_hours::numeric, 1) AS \"Lead Time (h)\",\n  ROUND(ji.cycle_time_hours::numeric, 1) AS \"Cycle Time (h)\",\n  ROUND(ji.action_time_hours::numeric, 1) AS \"Action Time (h)\",\n  ROUND(ji.awaiting_time_hours::numeric, 1) AS \"Awaiting Time (h)\",\n  COALESCE(array_to_string(ji.labels, ', '), '') AS \"Labels\"\nFROM jira_issues ji\nWHERE\n  (ji.created_at >= $__timeFrom() OR ji.resolved_at >= $__timeFrom())\n  AND (\n    '${resolved_filter}' = 'todos'\n    OR ('${resolved_filter}' = 'resolvidos' AND ji.resolved_at IS NOT NULL)\n    OR ('${resolved_filter}' = 'abertos' AND ji.status_category != 'done')\n  )\n  AND ('${project_filter}' = '.*' OR ji.project_key ~ '${project_filter}')\n  AND ('${assignee_filter}' = '.*' OR ji.assignee ~ '${assignee_filter}')\n  AND ('${status_filter}' = '.*' OR ji.status ~ '${status_filter}')\n  AND ('${status_cat_filter}' = '.*' OR ji.status_category ~ '${status_cat_filter}')\n  AND ('${issue_type_filter}' = '.*' OR ji.issue_type ~ '${issue_type_filter}')\nORDER BY ji.created_at DESC\nLIMIT 500",
+          "format": "table"
+        }
+      ]
+    }
+  ]
+}

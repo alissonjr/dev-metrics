@@ -1,0 +1,1358 @@
+{
+  "title": "Jira Sprint Dashboard",
+  "uid": "jira-sprint-dashboard",
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "5m",
+  "time": {
+    "from": "now-90d",
+    "to": "now"
+  },
+  "timezone": "browser",
+  "tags": [
+    "jira",
+    "sprint",
+    "kanban"
+  ],
+  "editable": true,
+  "graphTooltip": 1,
+  "links": [],
+  "annotations": {
+    "list": []
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "board",
+        "label": "Quadro",
+        "type": "query",
+        "datasource": {
+          "type": "postgres",
+          "uid": "gitlab-metrics"
+        },
+        "query": "SELECT name AS __text, id::text AS __value FROM jira_boards ORDER BY name",
+        "refresh": 1,
+        "includeAll": true,
+        "allValue": "0",
+        "multi": false,
+        "hide": 0,
+        "current": {}
+      },
+      {
+        "name": "sprint_state",
+        "label": "Estado da Sprint",
+        "type": "custom",
+        "query": "active,future,closed",
+        "options": [
+          {
+            "text": "active",
+            "value": "active",
+            "selected": true
+          },
+          {
+            "text": "future",
+            "value": "future",
+            "selected": false
+          },
+          {
+            "text": "closed",
+            "value": "closed",
+            "selected": false
+          }
+        ],
+        "current": {
+          "text": "active",
+          "value": "active"
+        },
+        "hide": 0,
+        "includeAll": true,
+        "multi": true,
+        "refresh": 0
+      },
+      {
+        "name": "sprint",
+        "label": "Sprint",
+        "type": "query",
+        "datasource": {
+          "type": "postgres",
+          "uid": "gitlab-metrics"
+        },
+        "query": "SELECT name || ' [' || state || ']' AS __text, id::text AS __value FROM jira_sprints WHERE ('$board' = '0' OR board_id = '$board'::integer) AND state IN (${sprint_state:sqlstring}) ORDER BY COALESCE(start_date, '1970-01-01') DESC",
+        "refresh": 2,
+        "includeAll": false,
+        "multi": false,
+        "hide": 0,
+        "current": {}
+      },
+      {
+        "name": "outliers",
+        "label": "Outliers",
+        "type": "custom",
+        "query": "excluir,incluir",
+        "options": [
+          {
+            "text": "Excluir outliers (p95)",
+            "value": "excluir",
+            "selected": true
+          },
+          {
+            "text": "Incluir todos",
+            "value": "incluir",
+            "selected": false
+          }
+        ],
+        "current": {
+          "text": "Excluir outliers (p95)",
+          "value": "excluir"
+        },
+        "hide": 0,
+        "includeAll": false,
+        "multi": false,
+        "refresh": 0
+      },
+      {
+        "name": "issue_type",
+        "label": "Tipo de Card",
+        "type": "query",
+        "datasource": {
+          "type": "postgres",
+          "uid": "gitlab-metrics"
+        },
+        "query": "SELECT DISTINCT ji.issue_type AS __text, ji.issue_type AS __value FROM jira_sprint_issues jsi JOIN jira_issues ji ON jsi.issue_key = ji.issue_key WHERE jsi.sprint_id = $sprint AND jsi.active = TRUE AND ji.issue_type IS NOT NULL AND ji.issue_type NOT IN ('Sub-task', 'Subtask', 'Subtarefa') ORDER BY ji.issue_type",
+        "refresh": 2,
+        "includeAll": true,
+        "multi": true,
+        "hide": 0,
+        "current": {}
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 200,
+      "type": "row",
+      "title": "Visão Geral da Sprint",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "collapsed": false
+    },
+    {
+      "id": 201,
+      "title": "Período da Sprint",
+      "type": "stat",
+      "gridPos": {
+        "h": 4,
+        "w": 8,
+        "x": 0,
+        "y": 1
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "gitlab-metrics"
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/^Período$/",
+          "values": false
+        },
+        "textMode": "value",
+        "colorMode": "none",
+        "graphMode": "none"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": []
+        }
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT\n  TO_CHAR(start_date AT TIME ZONE 'America/Sao_Paulo', 'DD/MM') || ' → ' || TO_CHAR(end_date AT TIME ZONE 'America/Sao_Paulo', 'DD/MM/YYYY') AS \"Período\"\nFROM jira_sprints WHERE id = $sprint::integer",
+          "format": "table"
+        }
+      ],
+      "description": "Datas de início e fim da sprint selecionada (start_date → end_date), conforme cadastrado no Jira."
+    },
+    {
+      "id": 208,
+      "title": "Bugs na Sprint",
+      "type": "stat",
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 8,
+        "y": 1
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "gitlab-metrics"
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/^Bugs$/"
+        },
+        "colorMode": "background",
+        "textMode": "value_and_name"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT\n  COUNT(*) AS \"Bugs\",\n  COUNT(*) FILTER (WHERE ji.status_category = 'done') AS \"Concluídos\"\nFROM jira_sprint_issues jsi\nJOIN jira_issues ji ON jsi.issue_key = ji.issue_key\nWHERE jsi.sprint_id = $sprint\n  AND jsi.active = TRUE\n  AND ji.issue_type = 'Bug'",
+          "format": "table"
+        }
+      ],
+      "description": "Quantidade total de cards do tipo Bug vinculados à sprint (ativos), independente do status atual. Indica o esforço investido em correção de defeitos dentro da sprint. A query também expõe a coluna \"Concluídos\" (bugs com status_category = 'done') — altere 'Fields' na reduceOptions para exibir outro recorte."
+    },
+    {
+      "id": 202,
+      "title": "Total de Cards",
+      "type": "stat",
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 0,
+        "y": 5
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "gitlab-metrics"
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "background"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT COUNT(*) AS \"Total\"\nFROM jira_sprint_issues jsi\nJOIN jira_issues ji ON jsi.issue_key = ji.issue_key\nWHERE jsi.sprint_id = $sprint\n  AND jsi.active = TRUE\n  AND ji.issue_type NOT IN ('Subtask', 'Sub-task', 'Subtarefa')",
+          "format": "table"
+        }
+      ],
+      "description": "Total de cards vinculados à sprint (excluindo subtasks) na tabela jira_sprint_issues, independente do status atual."
+    },
+    {
+      "id": 203,
+      "title": "Cards Concluídos",
+      "type": "stat",
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 6,
+        "y": 5
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "gitlab-metrics"
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "background"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT COUNT(*) AS \"Concluídos\"\nFROM jira_sprint_issues jsi\nJOIN jira_issues ji ON jsi.issue_key = ji.issue_key\nWHERE jsi.sprint_id = $sprint\n  AND jsi.active = TRUE\n  AND ji.status_category = 'done'\n  AND ji.issue_type NOT IN ('Subtask', 'Sub-task', 'Subtarefa')",
+          "format": "table"
+        }
+      ],
+      "description": "Cards da sprint com status_category = 'done' (excluindo subtasks). Inclui cards resolvidos dentro ou após o período da sprint, reflete o estado atual, não o histórico."
+    },
+    {
+      "id": 204,
+      "title": "Story Points Planejados",
+      "type": "stat",
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 12,
+        "y": 5
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "gitlab-metrics"
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "background"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "purple",
+                "value": null
+              }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT COALESCE(SUM(ji.story_points), 0)::int AS \"SP Planejados\"\nFROM jira_sprint_issues jsi\nJOIN jira_issues ji ON jsi.issue_key = ji.issue_key\nWHERE jsi.sprint_id = $sprint\n  AND jsi.active = TRUE\n  AND ji.issue_type NOT IN ('Subtask', 'Sub-task', 'Subtarefa')",
+          "format": "table"
+        }
+      ],
+      "description": "Soma dos story points de todos os cards vinculados à sprint (excluindo subtasks), incluindo os não concluídos. Cards sem estimativa de SP não contribuem para este total."
+    },
+    {
+      "id": 205,
+      "title": "Story Points Entregues",
+      "type": "stat",
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 18,
+        "y": 5
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "gitlab-metrics"
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "background"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT COALESCE(SUM(ji.story_points), 0)::int AS \"SP Entregues\"\nFROM jira_sprint_issues jsi\nJOIN jira_issues ji ON jsi.issue_key = ji.issue_key\nWHERE jsi.sprint_id = $sprint\n  AND jsi.active = TRUE\n  AND ji.status_category = 'done'\n  AND ji.issue_type NOT IN ('Subtask', 'Sub-task', 'Subtarefa')",
+          "format": "table"
+        }
+      ],
+      "description": "Soma dos story points exclusivamente dos cards com status_category = 'done' (excluindo subtasks). Divergência entre SP Planejados e Entregues indica variação de escopo ou estimativas incorretas."
+    },
+    {
+      "id": 206,
+      "title": "Taxa de Conclusão",
+      "type": "gauge",
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 12,
+        "y": 1
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "gitlab-metrics"
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "minVizWidth": 75
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 50
+              },
+              {
+                "color": "green",
+                "value": 80
+              }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT\n  ROUND(100.0 * COUNT(*) FILTER (WHERE ji.status_category = 'done') /\n    NULLIF(COUNT(*), 0), 1) AS \"Conclusão %\"\nFROM jira_sprint_issues jsi\nJOIN jira_issues ji ON jsi.issue_key = ji.issue_key\nWHERE jsi.sprint_id = $sprint\n  AND jsi.active = TRUE\n  AND ji.issue_type NOT IN ('Subtask', 'Sub-task', 'Subtarefa')",
+          "format": "table"
+        }
+      ],
+      "description": "Percentual de cards concluídos (status_category = 'done') em relação ao total da sprint. Calculado por contagem de cards, não por story points. Meta ideal: 100%. Valores abaixo de 80% consecutivos indicam problemas de planejamento ou capacidade."
+    },
+    {
+      "id": 207,
+      "title": "Taxa de Andamento",
+      "type": "gauge",
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 18,
+        "y": 1
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "gitlab-metrics"
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "minVizWidth": 75
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 50
+              },
+              {
+                "color": "green",
+                "value": 80
+              }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "rawSql": "WITH sprint_items AS (\n  SELECT ji.issue_key, ji.status_category, ji.issue_type, ji.parent_key\n  FROM jira_sprint_issues jsi\n  JOIN jira_issues ji ON jsi.issue_key = ji.issue_key\n  WHERE jsi.sprint_id = $sprint\n    AND jsi.active = TRUE\n),\nparents_with_subtasks AS (\n  SELECT DISTINCT si.parent_key\n  FROM sprint_items si\n  WHERE si.issue_type IN ('Subtask', 'Sub-task', 'Subtarefa')\n    AND si.parent_key IS NOT NULL\n),\ncountable AS (\n  -- subtasks + issues standalone (sem subtasks na sprint)\n  SELECT si.issue_key, si.status_category\n  FROM sprint_items si\n  WHERE si.issue_key NOT IN (SELECT parent_key FROM parents_with_subtasks)\n)\nSELECT\n  ROUND(100.0 * COUNT(*) FILTER (WHERE status_category = 'done') /\n    NULLIF(COUNT(*), 0), 1) AS \"Andamento %\"\nFROM countable",
+          "format": "table"
+        }
+      ],
+      "description": "Percentual de andamento real: conta apenas issues sem subtasks e subtasks individuais. Issues-pai cujas subtasks estão na sprint são excluídas para evitar contagem dupla. Reflete o progresso granular do trabalho."
+    },
+    {
+      "id": 210,
+      "type": "row",
+      "title": "Burndown",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 9
+      },
+      "collapsed": false
+    },
+    {
+      "id": 211,
+      "title": "Burndown: Cards Restantes",
+      "description": "Linha real (vermelho): cards da sprint ainda não concluídos em cada dia, calculado como total de cards menos os resolvidos (resolved_at) até aquela data. Linha ideal (cinza tracejado): decréscimo linear do total até zero no end_date da sprint. Computado via generate_series SQL, sem tabela de snapshots diários.",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 0,
+        "y": 10
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "gitlab-metrics"
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        },
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "last"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Ideal"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "gray",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "dash": [
+                    8,
+                    4
+                  ],
+                  "fill": "dash"
+                }
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Restantes"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "red",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "targets": [
+        {
+          "rawSql": "WITH\nsp AS (\n  SELECT id, start_date, end_date\n  FROM jira_sprints\n  WHERE id = $sprint\n),\ndays AS (\n  SELECT generate_series(\n    date_trunc('day', (SELECT start_date FROM sp)),\n    date_trunc('day', LEAST((SELECT end_date FROM sp), NOW())),\n    '1 day'::interval\n  ) AS day\n),\nsprint_cards AS (\n  SELECT ji.issue_key, ji.resolved_at\n  FROM jira_sprint_issues jsi\n  JOIN jira_issues ji ON jsi.issue_key = ji.issue_key\n  WHERE jsi.sprint_id = $sprint\n    AND jsi.active = TRUE\n    AND ji.issue_type NOT IN ('Subtask', 'Sub-task', 'Subtarefa')\n),\nscope AS (\n  SELECT COUNT(*) AS total FROM sprint_cards\n)\nSELECT\n  d.day AS time,\n  sc.total - COUNT(c.issue_key) FILTER (\n    WHERE c.resolved_at IS NOT NULL\n    AND date_trunc('day', c.resolved_at AT TIME ZONE 'UTC') <= d.day\n    AND date_trunc('day', c.resolved_at AT TIME ZONE 'UTC') >= (SELECT date_trunc('day', start_date) FROM sp)\n  ) AS \"Restantes\",\n  GREATEST(0, ROUND(sc.total * (\n    1.0 - LEAST(1.0,\n      EXTRACT(EPOCH FROM (d.day - date_trunc('day', (SELECT start_date FROM sp)))) /\n      NULLIF(EXTRACT(EPOCH FROM (date_trunc('day', (SELECT end_date FROM sp)) - date_trunc('day', (SELECT start_date FROM sp)))), 0)\n    )\n  ))) AS \"Ideal\"\nFROM days d\nCROSS JOIN scope sc\nLEFT JOIN sprint_cards c ON TRUE\nGROUP BY d.day, sc.total\nORDER BY d.day",
+          "format": "time_series"
+        }
+      ]
+    },
+    {
+      "id": 212,
+      "title": "Burndown: Story Points Restantes",
+      "description": "Linha real (laranja): SP da sprint ainda não entregues em cada dia, SP total menos SP de cards com resolved_at até aquela data. Linha ideal (cinza tracejado): decréscimo linear do SP total até zero no end_date. Computado via generate_series SQL, sem tabela de snapshots diários.",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 12,
+        "y": 10
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "gitlab-metrics"
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        },
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "last"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Ideal SP"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "gray",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "dash": [
+                    8,
+                    4
+                  ],
+                  "fill": "dash"
+                }
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "SP Restantes"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "orange",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "targets": [
+        {
+          "rawSql": "WITH\nsp AS (\n  SELECT id, start_date, end_date\n  FROM jira_sprints\n  WHERE id = $sprint\n),\ndays AS (\n  SELECT generate_series(\n    date_trunc('day', (SELECT start_date FROM sp)),\n    date_trunc('day', LEAST((SELECT end_date FROM sp), NOW())),\n    '1 day'::interval\n  ) AS day\n),\nsprint_cards AS (\n  SELECT ji.issue_key, ji.resolved_at, ji.story_points\n  FROM jira_sprint_issues jsi\n  JOIN jira_issues ji ON jsi.issue_key = ji.issue_key\n  WHERE jsi.sprint_id = $sprint\n    AND jsi.active = TRUE\n    AND ji.issue_type NOT IN ('Subtask', 'Sub-task', 'Subtarefa')\n),\nscope AS (\n  SELECT COALESCE(SUM(story_points), 0) AS total_sp FROM sprint_cards\n)\nSELECT\n  d.day AS time,\n  GREATEST(0, sc.total_sp - COALESCE(SUM(c.story_points) FILTER (\n    WHERE c.resolved_at IS NOT NULL\n    AND date_trunc('day', c.resolved_at AT TIME ZONE 'UTC') <= d.day\n    AND date_trunc('day', c.resolved_at AT TIME ZONE 'UTC') >= (SELECT date_trunc('day', start_date) FROM sp)\n  ), 0)) AS \"SP Restantes\",\n  GREATEST(0, ROUND((sc.total_sp * (\n    1.0 - LEAST(1.0,\n      EXTRACT(EPOCH FROM (d.day - date_trunc('day', (SELECT start_date FROM sp)))) /\n      NULLIF(EXTRACT(EPOCH FROM (date_trunc('day', (SELECT end_date FROM sp)) - date_trunc('day', (SELECT start_date FROM sp)))), 0)\n    )\n  ))::numeric, 1)) AS \"Ideal SP\"\nFROM days d\nCROSS JOIN scope sc\nLEFT JOIN sprint_cards c ON TRUE\nGROUP BY d.day, sc.total_sp\nORDER BY d.day",
+          "format": "time_series"
+        }
+      ]
+    },
+    {
+      "id": 209,
+      "type": "row",
+      "title": "Itens por Status",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 20
+      },
+      "collapsed": false
+    },
+    {
+      "id": 213,
+      "title": "Cards por Status",
+      "type": "barchart",
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 21
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "gitlab-metrics"
+      },
+      "options": {
+        "orientation": "horizontal",
+        "stacking": "none",
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 0,
+        "showValue": "always",
+        "barWidth": 0.7,
+        "groupWidth": 0.7,
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        },
+        "legend": {
+          "showLegend": false,
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": []
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisPlacement": "auto",
+            "axisLabel": "",
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "hideFrom": {
+              "tooltip": false,
+              "viz": false,
+              "legend": false
+            },
+            "lineWidth": 1,
+            "axisCenteredZero": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT\n  ji.status AS \"Status\",\n  COUNT(*) AS \"Cards\"\nFROM jira_sprint_issues jsi\nJOIN jira_issues ji ON jsi.issue_key = ji.issue_key\nWHERE jsi.sprint_id = $sprint\n  AND jsi.active = TRUE\n  AND ji.issue_type NOT IN ('Subtask', 'Sub-task', 'Subtarefa')\nGROUP BY ji.status, ji.status_category\nORDER BY\n  CASE ji.status_category\n    WHEN 'new' THEN 1\n    WHEN 'indeterminate' THEN 2\n    WHEN 'done' THEN 3\n    ELSE 4\n  END,\n  COUNT(*) DESC",
+          "format": "table"
+        }
+      ],
+      "description": "Quantidade de cards da sprint agrupados pelo status atual (excluindo subtasks). Ordenado pela categoria do fluxo: A Fazer -> Em Progresso -> Concluido."
+    },
+    {
+      "id": 220,
+      "type": "row",
+      "title": "Sprint: Cards por Coluna (Status)",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 29
+      },
+      "collapsed": false
+    },
+    {
+      "id": 222,
+      "title": "Qtd de Cards por Responsável",
+      "type": "barchart",
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 30
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "gitlab-metrics"
+      },
+      "options": {
+        "orientation": "horizontal",
+        "stacking": "normal",
+        "tooltip": {
+          "mode": "multi"
+        },
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          }
+        }
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT\n  COALESCE(ji.assignee, '(sem responsável)') AS \"Responsável\",\n  COUNT(*) FILTER (WHERE ji.status_category = 'done')          AS \"Concluídos\",\n  COUNT(*) FILTER (WHERE ji.status_category = 'indeterminate') AS \"Em Progresso\",\n  COUNT(*) FILTER (WHERE ji.status_category = 'new')           AS \"A Fazer\"\nFROM jira_sprint_issues jsi\nJOIN jira_issues ji ON jsi.issue_key = ji.issue_key\nWHERE jsi.sprint_id = $sprint\n  AND jsi.active = TRUE\n  AND ji.issue_type NOT IN ('Subtask', 'Sub-task', 'Subtarefa')\nGROUP BY ji.assignee\nORDER BY COUNT(*) DESC",
+          "format": "table"
+        }
+      ],
+      "description": "Cards da sprint por responsável (excluindo subtasks), empilhados por categoria de status: done (verde) / indeterminate (em andamento, amarelo) / new (a fazer + backlog, azul). Permite visualizar progresso e carga de trabalho individual dentro da sprint."
+    },
+    {
+      "id": 224,
+      "title": "Story Points por Responsável",
+      "type": "barchart",
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 38
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "gitlab-metrics"
+      },
+      "options": {
+        "orientation": "horizontal",
+        "stacking": "normal",
+        "tooltip": {
+          "mode": "multi"
+        },
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom"
+        }
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT\n  COALESCE(ji.assignee, '(sem responsável)') AS \"Responsável\",\n  COALESCE(SUM(ji.story_points) FILTER (WHERE ji.status_category = 'done'),         0)::int AS \"SP Entregues\",\n  COALESCE(SUM(ji.story_points) FILTER (WHERE ji.status_category = 'indeterminate'), 0)::int AS \"SP Em Progresso\",\n  COALESCE(SUM(ji.story_points) FILTER (WHERE ji.status_category = 'new'),           0)::int AS \"SP A Fazer\"\nFROM jira_sprint_issues jsi\nJOIN jira_issues ji ON jsi.issue_key = ji.issue_key\nWHERE jsi.sprint_id = $sprint\n  AND jsi.active = TRUE\n  AND ji.issue_type NOT IN ('Subtask', 'Sub-task', 'Subtarefa')\nGROUP BY ji.assignee\nORDER BY SUM(COALESCE(ji.story_points, 0)) DESC",
+          "format": "table"
+        }
+      ],
+      "description": "SP da sprint distribuídos por responsável (excluindo subtasks), separados por categoria de status: entregues (done) / em andamento (indeterminate) / a fazer + backlog (new). Mostra a contribuição e progresso de cada pessoa em termos de esforço estimado."
+    },
+    {
+      "id": 230,
+      "type": "row",
+      "title": "Sprint: Lista Completa",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 46
+      },
+      "collapsed": false
+    },
+    {
+      "id": 231,
+      "title": "Cards da Sprint",
+      "type": "table",
+      "gridPos": {
+        "h": 14,
+        "w": 24,
+        "x": 0,
+        "y": 47
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "gitlab-metrics"
+      },
+      "options": {
+        "sortBy": [
+          {
+            "displayName": "Status Cat",
+            "desc": false
+          }
+        ],
+        "footer": {
+          "show": false
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "left"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Card"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 90
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Título"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 380
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "SP"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 60
+              },
+              {
+                "id": "custom.align",
+                "value": "center"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Tipo"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 100
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Status"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 160
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Responsável"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 160
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Status Cat"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 0
+              },
+              {
+                "id": "custom.hidden",
+                "value": true
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Status"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": []
+              },
+              {
+                "id": "custom.displayMode",
+                "value": "color-background-solid"
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "blue",
+                      "value": null
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT\n  ji.issue_key                                      AS \"Card\",\n  LEFT(ji.summary, 80)                              AS \"Título\",\n  COALESCE(ji.issue_type, '-')                      AS \"Tipo\",\n  ji.status                                         AS \"Status\",\n  ji.status_category                                AS \"Status Cat\",\n  COALESCE(ji.assignee, '(sem responsável)')        AS \"Responsável\",\n  COALESCE(ji.story_points::text, '-')              AS \"SP\",\n  COALESCE(ROUND(ji.lead_time_hours::numeric, 0)::text || 'h', '-') AS \"Lead Time\"\nFROM jira_sprint_issues jsi\nJOIN jira_issues ji ON jsi.issue_key = ji.issue_key\nWHERE jsi.sprint_id = $sprint\n  AND jsi.active = TRUE\n  AND ji.issue_type NOT IN ('Subtask', 'Sub-task', 'Subtarefa')\nORDER BY\n  CASE ji.status_category\n    WHEN 'new'           THEN 1\n    WHEN 'indeterminate' THEN 2\n    WHEN 'done'          THEN 3\n    ELSE 4\n  END,\n  ji.assignee NULLS LAST,\n  ji.issue_key",
+          "format": "table"
+        }
+      ],
+      "description": "Lista completa de todos os cards da sprint com: chave, título (80 chars), tipo, status atual, categoria de status, responsável, story points e lead time em horas. Lead time = created_at → resolved_at (ou até hoje, se ainda em aberto). Ordenado por status_category (done por último) para destacar o que ainda precisa de atenção."
+    },
+    {
+      "id": 240,
+      "type": "row",
+      "title": "Velocidade Histórica: Comparativo de Sprints",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 61
+      },
+      "collapsed": false
+    },
+    {
+      "id": 241,
+      "title": "Cards Concluídos por Sprint",
+      "type": "barchart",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 62
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "gitlab-metrics"
+      },
+      "options": {
+        "orientation": "vertical",
+        "tooltip": {
+          "mode": "single"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "xTickLabelRotation": -30
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "blue",
+            "mode": "fixed"
+          }
+        }
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT\n  js.name AS \"Sprint\",\n  COUNT(jsi.issue_key) FILTER (WHERE ji.status_category = 'done') AS \"Cards Concluídos\"\nFROM jira_sprints js\nLEFT JOIN jira_sprint_issues jsi ON jsi.sprint_id = js.id AND jsi.active = TRUE\nLEFT JOIN jira_issues ji ON jsi.issue_key = ji.issue_key\nWHERE js.state IN ('active', 'closed')\n  AND ('$board' = '0' OR js.board_id = '$board'::integer)\n  AND (ji.issue_type NOT IN ('Subtask', 'Sub-task', 'Subtarefa') OR ji.issue_type IS NULL)\nGROUP BY js.id, js.name, js.start_date\nORDER BY js.start_date NULLS LAST\nLIMIT 20",
+          "format": "table"
+        }
+      ],
+      "description": "Quantidade de cards com status_category = 'done' por sprint (excluindo subtasks), ordenado por data de início. Referência histórica de velocidade de entrega do time, limitado às 20 sprints mais recentes do quadro. Sprints com variação grande de entrega indicam instabilidade de capacidade ou escopo."
+    },
+    {
+      "id": 242,
+      "title": "Story Points por Sprint",
+      "type": "barchart",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 62
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "gitlab-metrics"
+      },
+      "options": {
+        "orientation": "vertical",
+        "tooltip": {
+          "mode": "multi"
+        },
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom"
+        },
+        "xTickLabelRotation": -30,
+        "stacking": "normal"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          }
+        }
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT\n  js.name AS \"Sprint\",\n  COALESCE(SUM(ji.story_points) FILTER (WHERE ji.status_category = 'done'),         0)::int AS \"SP Entregues\",\n  COALESCE(SUM(ji.story_points) FILTER (WHERE ji.status_category != 'done'),         0)::int AS \"SP Não Entregues\"\nFROM jira_sprints js\nLEFT JOIN jira_sprint_issues jsi ON jsi.sprint_id = js.id AND jsi.active = TRUE\nLEFT JOIN jira_issues ji ON jsi.issue_key = ji.issue_key\nWHERE js.state IN ('active', 'closed')\n  AND ('$board' = '0' OR js.board_id = '$board'::integer)\n  AND (ji.issue_type NOT IN ('Subtask', 'Sub-task', 'Subtarefa') OR ji.issue_type IS NULL)\nGROUP BY js.id, js.name, js.start_date\nORDER BY js.start_date NULLS LAST\nLIMIT 20",
+          "format": "table"
+        }
+      ],
+      "description": "SP entregues (done) vs SP não entregues (não done) por sprint (excluindo subtasks), empilhados. Mostra consistência da velocidade em termos de esforço estimado e taxa de cumprimento dos objetivos. Limitado às 20 sprints mais recentes do quadro selecionado."
+    },
+    {
+      "id": 250,
+      "type": "row",
+      "title": "Transbordo: Cards Removidos da Sprint",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 70
+      },
+      "collapsed": false
+    },
+    {
+      "id": 251,
+      "title": "Cards Removidos",
+      "type": "stat",
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 0,
+        "y": 71
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "gitlab-metrics"
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "background"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "semi-dark-orange",
+                "value": null
+              }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT COUNT(*) AS \"Removidos\"\nFROM jira_sprint_issues jsi\nJOIN jira_issues ji ON jsi.issue_key = ji.issue_key\nWHERE jsi.sprint_id = $sprint\n  AND jsi.active = FALSE\n  AND ji.issue_type NOT IN ('Subtask', 'Sub-task', 'Subtarefa')",
+          "format": "table"
+        }
+      ],
+      "description": "Cards que foram removidos da sprint (transbordo). Estes cards estavam originalmente na sprint mas foram retirados antes do fechamento."
+    },
+    {
+      "id": 252,
+      "title": "SP Removidos",
+      "type": "stat",
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 6,
+        "y": 71
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "gitlab-metrics"
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "background"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "semi-dark-orange",
+                "value": null
+              }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT COALESCE(SUM(ji.story_points), 0)::int AS \"SP Removidos\"\nFROM jira_sprint_issues jsi\nJOIN jira_issues ji ON jsi.issue_key = ji.issue_key\nWHERE jsi.sprint_id = $sprint\n  AND jsi.active = FALSE\n  AND ji.issue_type NOT IN ('Subtask', 'Sub-task', 'Subtarefa')",
+          "format": "table"
+        }
+      ],
+      "description": "Soma dos story points dos cards removidos da sprint. Indica quanto esforço estimado foi retirado (transbordo)."
+    },
+    {
+      "id": 253,
+      "title": "Transbordo por Sprint (Histórico)",
+      "type": "barchart",
+      "gridPos": {
+        "h": 6,
+        "w": 12,
+        "x": 12,
+        "y": 71
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "gitlab-metrics"
+      },
+      "options": {
+        "orientation": "vertical",
+        "tooltip": {
+          "mode": "multi"
+        },
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom"
+        },
+        "xTickLabelRotation": -30,
+        "stacking": "normal"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          }
+        }
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT\n  js.name AS \"Sprint\",\n  COUNT(jsi.issue_key) FILTER (WHERE jsi.active = FALSE) AS \"Cards Removidos\",\n  COALESCE(SUM(ji.story_points) FILTER (WHERE jsi.active = FALSE), 0)::int AS \"SP Removidos\"\nFROM jira_sprints js\nLEFT JOIN jira_sprint_issues jsi ON jsi.sprint_id = js.id\nLEFT JOIN jira_issues ji ON jsi.issue_key = ji.issue_key\nWHERE js.state IN ('active', 'closed')\n  AND ('$board' = '0' OR js.board_id = '$board'::integer)\n  AND (ji.issue_type NOT IN ('Subtask', 'Sub-task', 'Subtarefa') OR ji.issue_type IS NULL)\nGROUP BY js.id, js.name, js.start_date\nHAVING COUNT(jsi.issue_key) FILTER (WHERE jsi.active = FALSE) > 0\nORDER BY js.start_date NULLS LAST\nLIMIT 20",
+          "format": "table"
+        }
+      ],
+      "description": "Quantidade de cards e story points removidos por sprint (transbordo). Mostra padrões de remoção de escopo ao longo do tempo. Sprints com alto transbordo recorrente indicam problemas de planejamento."
+    },
+    {
+      "id": 254,
+      "title": "Cards Removidos da Sprint",
+      "type": "table",
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 77
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "gitlab-metrics"
+      },
+      "options": {
+        "sortBy": [
+          {
+            "displayName": "Removido em",
+            "desc": true
+          }
+        ],
+        "footer": {
+          "show": false
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "left"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Card"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 90
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Título"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 350
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "SP"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 60
+              },
+              {
+                "id": "custom.align",
+                "value": "center"
+              }
+            ]
+          }
+        ]
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT\n  ji.issue_key                                      AS \"Card\",\n  LEFT(ji.summary, 80)                              AS \"Título\",\n  COALESCE(ji.issue_type, '-')                      AS \"Tipo\",\n  ji.status                                         AS \"Status\",\n  COALESCE(ji.assignee, '(sem responsável)')        AS \"Responsável\",\n  COALESCE(ji.story_points::text, '-')              AS \"SP\",\n  TO_CHAR(jsi.removed_at, 'DD/MM/YYYY HH24:MI')    AS \"Removido em\"\nFROM jira_sprint_issues jsi\nJOIN jira_issues ji ON jsi.issue_key = ji.issue_key\nWHERE jsi.sprint_id = $sprint\n  AND jsi.active = FALSE\n  AND ji.issue_type NOT IN ('Subtask', 'Sub-task', 'Subtarefa')\nORDER BY jsi.removed_at DESC",
+          "format": "table"
+        }
+      ],
+      "description": "Lista completa dos cards removidos da sprint (transbordo), com data de remoção. Permite rastrear exatamente quais cards saíram e quando."
+    }
+  ]
+}

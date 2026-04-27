@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 200" width="700" height="200" font-family="'Segoe UI', Arial, sans-serif">
+
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#aaa"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="700" height="200" fill="#f8f9fa" rx="12"/>
+
+  <!-- GitLab API -->
+  <rect x="30" y="55" width="120" height="44" rx="7" fill="#fff" stroke="#FC6D26" stroke-width="1.5"/>
+  <text x="90" y="72" text-anchor="middle" font-size="12" font-weight="600" fill="#C24400">GitLab</text>
+  <text x="90" y="89" text-anchor="middle" font-size="10" fill="#888">API</text>
+
+  <!-- Jira API -->
+  <rect x="30" y="115" width="120" height="44" rx="7" fill="#fff" stroke="#0052CC" stroke-width="1.5"/>
+  <text x="90" y="132" text-anchor="middle" font-size="12" font-weight="600" fill="#003d99">Jira</text>
+  <text x="90" y="149" text-anchor="middle" font-size="10" fill="#888">API</text>
+
+  <!-- Arrow: GitLab → ETL GitLab -->
+  <line x1="150" y1="77" x2="208" y2="77" stroke="#aaa" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- Arrow: Jira → ETL Jira -->
+  <line x1="150" y1="137" x2="208" y2="137" stroke="#aaa" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- ETL GitLab -->
+  <rect x="210" y="55" width="120" height="44" rx="7" fill="#fff" stroke="#FC6D26" stroke-width="1.5"/>
+  <text x="270" y="72" text-anchor="middle" font-size="12" font-weight="600" fill="#C24400">ETL</text>
+  <text x="270" y="89" text-anchor="middle" font-size="10" fill="#888">GitLab</text>
+
+  <!-- ETL Jira -->
+  <rect x="210" y="115" width="120" height="44" rx="7" fill="#fff" stroke="#0052CC" stroke-width="1.5"/>
+  <text x="270" y="132" text-anchor="middle" font-size="12" font-weight="600" fill="#003d99">ETL</text>
+  <text x="270" y="149" text-anchor="middle" font-size="10" fill="#888">Jira</text>
+
+  <!-- Arrow: ETL GitLab → PostgreSQL -->
+  <line x1="330" y1="77" x2="388" y2="100" stroke="#aaa" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- Arrow: ETL Jira → PostgreSQL -->
+  <line x1="330" y1="137" x2="388" y2="114" stroke="#aaa" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- PostgreSQL -->
+  <rect x="390" y="78" width="120" height="58" rx="7" fill="#fff" stroke="#336791" stroke-width="1.5"/>
+  <text x="450" y="102" text-anchor="middle" font-size="12" font-weight="600" fill="#1a3d5c">PostgreSQL</text>
+  <text x="450" y="120" text-anchor="middle" font-size="10" fill="#888">banco de métricas</text>
+
+  <!-- Arrow: PostgreSQL → Grafana -->
+  <line x1="510" y1="107" x2="568" y2="107" stroke="#aaa" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- Grafana -->
+  <rect x="570" y="78" width="100" height="58" rx="7" fill="#fff" stroke="#F46800" stroke-width="1.5"/>
+  <text x="620" y="102" text-anchor="middle" font-size="12" font-weight="600" fill="#b34e00">Grafana</text>
+  <text x="620" y="120" text-anchor="middle" font-size="10" fill="#888">dashboards</text>
+
+</svg>

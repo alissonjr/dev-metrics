@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Dúvida de uso
+    url: ../../discussions
+    about: Para perguntas sobre como rodar, configurar tokens ou interpretar dashboards, use Discussions.
+  - name: Reportar vulnerabilidade
+    url: ../../security/advisories/new
+    about: Use o canal privado do GitHub Security. Não abra issue pública.

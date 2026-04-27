@@ -1,0 +1,670 @@
+{
+  "__inputs": [],
+  "__requires": [],
+  "annotations": {
+    "list": []
+  },
+  "description": "Logs e histórico de execução dos ETLs GitLab e Jira",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 100,
+      "title": "Execuções de Sync",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "gitlab-metrics"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "mappings": [
+            {
+              "options": {
+                "success": {
+                  "color": "green",
+                  "index": 0,
+                  "text": "✓ success"
+                },
+                "partial": {
+                  "color": "yellow",
+                  "index": 1,
+                  "text": "⚠ partial"
+                },
+                "failed": {
+                  "color": "red",
+                  "index": 2,
+                  "text": "✗ failed"
+                },
+                "running": {
+                  "color": "blue",
+                  "index": 3,
+                  "text": "↻ running"
+                }
+              },
+              "type": "value"
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "status"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background"
+                }
+              },
+              {
+                "id": "custom.width",
+                "value": 110
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "source"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 80
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "elapsed_s"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 90
+              },
+              {
+                "id": "unit",
+                "value": "s"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "rows_synced"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 100
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "errors_count"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 90
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 1
+      },
+      "id": 1,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "started_at"
+          }
+        ]
+      },
+      "title": "Histórico de Execuções",
+      "type": "table",
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "gitlab-metrics"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  started_at,\n  finished_at,\n  source,\n  status,\n  rows_synced,\n  errors_count,\n  since_cursor,\n  ROUND(EXTRACT(EPOCH FROM (finished_at - started_at))::numeric, 1) AS elapsed_s,\n  details\nFROM integration_sync_runs\nWHERE started_at >= $__timeFrom()\n  AND started_at <= $__timeTo()\n  AND ('${source}' = 'all' OR source = '${source}')\nORDER BY started_at DESC\nLIMIT 200",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "gitlab-metrics"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2
+          }
+        }
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 0,
+        "y": 9
+      },
+      "id": 2,
+      "options": {
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "title": "Registros Sincronizados por Execução",
+      "type": "timeseries",
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "gitlab-metrics"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  started_at AS time,\n  source,\n  rows_synced\nFROM integration_sync_runs\nWHERE started_at >= $__timeFrom()\n  AND started_at <= $__timeTo()\n  AND ('${source}' = 'all' OR source = '${source}')\n  AND (\n    '$outliers' = 'incluir'\n    OR rows_synced IS NULL\n    OR rows_synced <= (\n      SELECT PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY rows_synced)\n      FROM integration_sync_runs\n      WHERE rows_synced IS NOT NULL\n        AND started_at >= $__timeFrom() AND started_at <= $__timeTo()\n    )\n  )\n  AND (\n    '$outliers' = 'incluir'\n    OR rows_synced IS NULL\n    OR rows_synced <= (\n      SELECT PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY rows_synced)\n      FROM integration_sync_runs\n      WHERE rows_synced IS NOT NULL\n        AND started_at >= $__timeFrom() AND started_at <= $__timeTo()\n    )\n  )\nORDER BY started_at",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "gitlab-metrics"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2
+          }
+        }
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 9
+      },
+      "id": 3,
+      "options": {
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "title": "Duração das Execuções (segundos)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "gitlab-metrics"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  started_at AS time,\n  source,\n  EXTRACT(EPOCH FROM (finished_at - started_at)) AS duration_s\nFROM integration_sync_runs\nWHERE started_at >= $__timeFrom()\n  AND started_at <= $__timeTo()\n  AND finished_at IS NOT NULL\n  AND ('${source}' = 'all' OR source = '${source}')\n  AND (\n    '$outliers' = 'incluir'\n    OR EXTRACT(EPOCH FROM (finished_at - started_at)) <= (\n      SELECT PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY EXTRACT(EPOCH FROM (finished_at - started_at)))\n      FROM integration_sync_runs\n      WHERE finished_at IS NOT NULL\n        AND started_at >= $__timeFrom() AND started_at <= $__timeTo()\n    )\n  )\n  AND (\n    '$outliers' = 'incluir'\n    OR EXTRACT(EPOCH FROM (finished_at - started_at)) <= (\n      SELECT PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY EXTRACT(EPOCH FROM (finished_at - started_at)))\n      FROM integration_sync_runs\n      WHERE finished_at IS NOT NULL\n        AND started_at >= $__timeFrom() AND started_at <= $__timeTo()\n    )\n  )\nORDER BY started_at",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 16
+      },
+      "id": 101,
+      "title": "Logs de Eventos",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "gitlab-metrics"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": true,
+            "minWidth": 100
+          },
+          "mappings": [
+            {
+              "options": {
+                "info": {
+                  "color": "blue",
+                  "index": 0
+                },
+                "warning": {
+                  "color": "yellow",
+                  "index": 1
+                },
+                "error": {
+                  "color": "red",
+                  "index": 2
+                }
+              },
+              "type": "value"
+            }
+          ]
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "level"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background"
+                }
+              },
+              {
+                "id": "custom.width",
+                "value": 90
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "source"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 80
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "event_type"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 160
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "project"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 180
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "created_at"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 180
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 12,
+        "w": 24,
+        "x": 0,
+        "y": 17
+      },
+      "id": 4,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        },
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "created_at"
+          }
+        ]
+      },
+      "title": "Log de Eventos",
+      "type": "table",
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "gitlab-metrics"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  created_at,\n  source,\n  level,\n  event_type,\n  project,\n  message,\n  rows_synced,\n  details\nFROM integration_logs\nWHERE created_at >= $__timeFrom()\n  AND created_at <= $__timeTo()\n  AND ('${source}' = 'all' OR source = '${source}')\n  AND ('${level}' = 'all' OR level = '${level}')\n  AND ('${event_type}' = 'all' OR event_type = '${event_type}')\nORDER BY created_at DESC\nLIMIT 500",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "gitlab-metrics"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          }
+        }
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 0,
+        "y": 29
+      },
+      "id": 5,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      },
+      "title": "Logs por Nível",
+      "type": "piechart",
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "gitlab-metrics"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT level, COUNT(*) AS count\nFROM integration_logs\nWHERE created_at >= $__timeFrom()\n  AND created_at <= $__timeTo()\n  AND ('${source}' = 'all' OR source = '${source}')\nGROUP BY level\nORDER BY count DESC",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "gitlab-metrics"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          }
+        }
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 8,
+        "y": 29
+      },
+      "id": 6,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      },
+      "title": "Logs por Fonte",
+      "type": "piechart",
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "gitlab-metrics"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT source, COUNT(*) AS count\nFROM integration_logs\nWHERE created_at >= $__timeFrom()\n  AND created_at <= $__timeTo()\n  AND ('${level}' = 'all' OR level = '${level}')\nGROUP BY source\nORDER BY count DESC",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "gitlab-metrics"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2
+          }
+        }
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 16,
+        "y": 29
+      },
+      "id": 7,
+      "options": {
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "title": "Erros e Warnings ao Longo do Tempo",
+      "type": "timeseries",
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "gitlab-metrics"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  date_trunc('hour', created_at) AS time,\n  level,\n  COUNT(*) AS count\nFROM integration_logs\nWHERE created_at >= $__timeFrom()\n  AND created_at <= $__timeTo()\n  AND level IN ('warning', 'error')\n  AND ('${source}' = 'all' OR source = '${source}')\nGROUP BY 1, 2\nORDER BY 1",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "refresh": "5m",
+  "schemaVersion": 39,
+  "tags": [
+    "etl",
+    "integrations",
+    "logs"
+  ],
+  "templating": {
+    "list": [
+      {
+        "current": {
+          "selected": true,
+          "text": "all",
+          "value": "all"
+        },
+        "datasource": {
+          "type": "postgres",
+          "uid": "gitlab-metrics"
+        },
+        "definition": "SELECT DISTINCT source FROM integration_logs ORDER BY source",
+        "hide": 0,
+        "includeAll": true,
+        "allValue": "all",
+        "label": "Fonte",
+        "name": "source",
+        "options": [],
+        "query": "SELECT DISTINCT source FROM integration_logs ORDER BY source",
+        "refresh": 2,
+        "type": "query"
+      },
+      {
+        "current": {
+          "selected": true,
+          "text": "all",
+          "value": "all"
+        },
+        "datasource": {
+          "type": "postgres",
+          "uid": "gitlab-metrics"
+        },
+        "definition": "SELECT DISTINCT level FROM integration_logs ORDER BY level",
+        "hide": 0,
+        "includeAll": true,
+        "allValue": "all",
+        "label": "Nível",
+        "name": "level",
+        "options": [],
+        "query": "SELECT DISTINCT level FROM integration_logs ORDER BY level",
+        "refresh": 2,
+        "type": "query"
+      },
+      {
+        "current": {
+          "selected": true,
+          "text": "all",
+          "value": "all"
+        },
+        "datasource": {
+          "type": "postgres",
+          "uid": "gitlab-metrics"
+        },
+        "definition": "SELECT DISTINCT event_type FROM integration_logs ORDER BY event_type",
+        "hide": 0,
+        "includeAll": true,
+        "allValue": "all",
+        "label": "Tipo de Evento",
+        "name": "event_type",
+        "options": [],
+        "query": "SELECT DISTINCT event_type FROM integration_logs ORDER BY event_type",
+        "refresh": 2,
+        "type": "query"
+      },
+      {
+        "name": "outliers",
+        "label": "Outliers",
+        "type": "custom",
+        "query": "excluir,incluir",
+        "options": [
+          {
+            "text": "Excluir outliers (p95)",
+            "value": "excluir",
+            "selected": true
+          },
+          {
+            "text": "Incluir todos",
+            "value": "incluir",
+            "selected": false
+          }
+        ],
+        "current": {
+          "text": "Excluir outliers (p95)",
+          "value": "excluir"
+        },
+        "hide": 0,
+        "includeAll": false,
+        "multi": false,
+        "refresh": 0
+      }
+    ]
+  },
+  "time": {
+    "from": "now-7d",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "ETL: Logs de Integração",
+  "uid": "integration-logs",
+  "version": 1
+}

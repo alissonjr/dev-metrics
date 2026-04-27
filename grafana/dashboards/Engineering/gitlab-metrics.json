@@ -1,0 +1,995 @@
+{
+  "title": "GitLab Engineering Metrics",
+  "uid": "gitlab-eng-metrics",
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "5m",
+  "time": {
+    "from": "now-12M",
+    "to": "now"
+  },
+  "timezone": "browser",
+  "tags": [
+    "gitlab",
+    "engineering"
+  ],
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "links": [],
+  "annotations": {
+    "list": []
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "project",
+        "label": "Projeto",
+        "type": "query",
+        "datasource": {
+          "type": "postgres",
+          "uid": "gitlab-metrics"
+        },
+        "query": "SELECT DISTINCT path_with_namespace FROM gitlab_projects ORDER BY 1",
+        "refresh": 1,
+        "includeAll": true,
+        "allValue": ".*",
+        "multi": true,
+        "hide": 0,
+        "current": {}
+      },
+      {
+        "name": "author",
+        "label": "Autor",
+        "type": "query",
+        "datasource": {
+          "type": "postgres",
+          "uid": "gitlab-metrics"
+        },
+        "query": "SELECT DISTINCT author_username FROM gitlab_merge_requests ORDER BY 1",
+        "refresh": 1,
+        "includeAll": true,
+        "allValue": ".*",
+        "multi": true,
+        "hide": 0,
+        "current": {}
+      },
+      {
+        "name": "env",
+        "label": "Ambiente",
+        "type": "query",
+        "datasource": {
+          "type": "postgres",
+          "uid": "gitlab-metrics"
+        },
+        "query": "SELECT DISTINCT environment FROM gitlab_deployments WHERE environment IS NOT NULL ORDER BY 1",
+        "refresh": 1,
+        "includeAll": true,
+        "allValue": ".*",
+        "multi": true,
+        "hide": 0,
+        "current": {}
+      },
+      {
+        "name": "outliers",
+        "label": "Outliers",
+        "type": "custom",
+        "query": "excluir,incluir",
+        "options": [
+          {
+            "text": "Excluir outliers (p95)",
+            "value": "excluir",
+            "selected": true
+          },
+          {
+            "text": "Incluir todos",
+            "value": "incluir",
+            "selected": false
+          }
+        ],
+        "current": {
+          "text": "Excluir outliers (p95)",
+          "value": "excluir"
+        },
+        "hide": 0,
+        "includeAll": false,
+        "multi": false,
+        "refresh": 0
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "row",
+      "title": "Merge Requests",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 31
+      },
+      "collapsed": false
+    },
+    {
+      "id": 2,
+      "title": "MRs Criados por Mês",
+      "type": "barchart",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 32
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "gitlab-metrics"
+      },
+      "options": {
+        "orientation": "vertical",
+        "xTickLabelRotation": -45,
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        },
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "sum"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {}
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT\n  TO_CHAR(date_trunc('month', created_at), 'Mon/YYYY') AS \"Mês\",\n  COUNT(*) AS \"MRs Criados\"\nFROM gitlab_merge_requests\nWHERE\n  created_at BETWEEN $__timeFrom() AND $__timeTo()\n  AND project_id IN (SELECT id FROM gitlab_projects WHERE path_with_namespace ~ '${project:pipe}')\nGROUP BY date_trunc('month', created_at)\nORDER BY date_trunc('month', created_at)",
+          "format": "table"
+        }
+      ],
+      "description": "Contagem de Merge Requests abertos por semana (created_at). Indica a cadência de desenvolvimento e submissão de trabalho para revisão. Picos podem refletir entregas próximas a deadlines ou sprints finais."
+    },
+    {
+      "id": 3,
+      "title": "MRs Mergeados por Mês",
+      "type": "barchart",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 32
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "gitlab-metrics"
+      },
+      "options": {
+        "orientation": "vertical",
+        "xTickLabelRotation": -45,
+        "tooltip": {
+          "mode": "multi"
+        },
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "sum"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "green",
+            "mode": "fixed"
+          }
+        }
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT\n  TO_CHAR(date_trunc('month', merged_at), 'Mon/YYYY') AS \"Mês\",\n  COUNT(*) AS \"MRs Mergeados\"\nFROM gitlab_merge_requests\nWHERE\n  state = 'merged'\n  AND merged_at BETWEEN $__timeFrom() AND $__timeTo()\n  AND project_id IN (SELECT id FROM gitlab_projects WHERE path_with_namespace ~ '${project:pipe}')\nGROUP BY date_trunc('month', merged_at)\nORDER BY date_trunc('month', merged_at)",
+          "format": "table"
+        }
+      ],
+      "description": "MRs concluídos (merged_at) por semana. Quando consistentemente abaixo de 'MRs Criados', indica acúmulo de revisões pendentes, sinal de gargalo no processo de code review."
+    },
+    {
+      "id": 4,
+      "title": "MRs por Autor: Volume e Ciclo",
+      "type": "table",
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 40
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "gitlab-metrics"
+      },
+      "options": {
+        "sortBy": [
+          {
+            "displayName": "MRs Criados",
+            "desc": true
+          }
+        ],
+        "footer": {
+          "show": true,
+          "reducer": [
+            "sum"
+          ],
+          "fields": [
+            "MRs Criados",
+            "MRs Mergeados"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Ciclo Médio (h)"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "h"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Ciclo Mediana (h)"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "h"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Arquivos/MR"
+            },
+            "properties": [
+              {
+                "id": "decimals",
+                "value": 1
+              }
+            ]
+          }
+        ]
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT\n  mr.author_username                                         AS \"Autor\",\n  COUNT(*)                                                   AS \"MRs Criados\",\n  COUNT(*) FILTER (WHERE mr.state = 'merged')                AS \"MRs Mergeados\",\n  COUNT(*) FILTER (WHERE mr.state = 'opened')                AS \"Em Aberto\",\n  ROUND(AVG(mr.cycle_time_hours) FILTER (WHERE mr.state = 'merged')::numeric, 1) AS \"Ciclo Médio (h)\",\n  ROUND(PERCENTILE_CONT(0.5) WITHIN GROUP (\n    ORDER BY mr.cycle_time_hours\n  ) FILTER (WHERE mr.state = 'merged')::numeric, 1)                  AS \"Ciclo Mediana (h)\",\n  ROUND(AVG(mr.changes_count), 1)                            AS \"Arquivos/MR\",\n  ROUND(AVG(ms.total_lines_changed), 0)                      AS \"Linhas/MR\"\nFROM gitlab_merge_requests mr\nJOIN gitlab_projects p ON mr.project_id = p.id\nLEFT JOIN (\n  SELECT mr_id,\n    SUM(c.additions + c.deletions) AS total_lines_changed\n  FROM gitlab_mr_commits mc\n  JOIN gitlab_commits c ON mc.commit_sha = c.sha AND mc.project_id = c.project_id\n  GROUP BY mr_id\n) ms ON mr.id = ms.mr_id\nWHERE\n  mr.created_at BETWEEN $__timeFrom() AND $__timeTo()\n  AND p.path_with_namespace ~ '${project:pipe}'\n  AND mr.author_username ~ '${author:pipe}'\n  AND (\n    '${outliers}' = 'incluir'\n    OR mr.cycle_time_hours IS NULL\n    OR mr.cycle_time_hours <= (\n      SELECT PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY cycle_time_hours)\n      FROM gitlab_merge_requests\n      WHERE state = 'merged' AND cycle_time_hours IS NOT NULL\n        AND created_at BETWEEN $__timeFrom() AND $__timeTo()\n    )\n  )\nGROUP BY mr.author_username\nORDER BY \"MRs Criados\" DESC",
+          "format": "table"
+        }
+      ],
+      "description": "Por autor no período: total de MRs criados, mergeados, taxa de merge (%) e tempo médio entre abertura e merge (cycle time do MR, em horas). Cycle time alto pode indicar MRs grandes, falta de reviewers ou dependências externas."
+    },
+    {
+      "id": 5,
+      "type": "row",
+      "title": "Tamanho de MRs",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 50
+      },
+      "collapsed": false
+    },
+    {
+      "id": 7,
+      "title": "MR Size: Arquivos e Linhas por Autor",
+      "type": "table",
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 51
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "gitlab-metrics"
+      },
+      "options": {
+        "sortBy": [
+          {
+            "displayName": "MRs",
+            "desc": true
+          }
+        ]
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT\n  mr.author_username              AS \"Autor\",\n  COUNT(*)                        AS \"MRs\",\n  ROUND(AVG(mr.changes_count), 1) AS \"Arquivos/MR (média)\",\n  ROUND(AVG(ms.total_lines), 0)   AS \"Linhas/MR (média)\",\n  MAX(ms.total_lines)             AS \"Maior MR (linhas)\"\nFROM gitlab_merge_requests mr\nJOIN gitlab_projects p ON mr.project_id = p.id\nLEFT JOIN (\n  SELECT mc.mr_id, SUM(c.additions + c.deletions) AS total_lines\n  FROM gitlab_mr_commits mc\n  JOIN gitlab_commits c ON mc.commit_sha = c.sha AND mc.project_id = c.project_id\n  GROUP BY mc.mr_id\n) ms ON mr.id = ms.mr_id\nWHERE\n  mr.state = 'merged'\n  AND mr.merged_at BETWEEN $__timeFrom() AND $__timeTo()\n  AND p.path_with_namespace ~ '${project:pipe}'\n  AND mr.author_username ~ '${author:pipe}'\n  AND (\n    '${outliers}' = 'incluir'\n    OR COALESCE(ms.total_lines, 0) <= (\n      SELECT PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY s.total_lines)\n      FROM (\n        SELECT mc.mr_id, SUM(c.additions + c.deletions) AS total_lines\n        FROM gitlab_mr_commits mc\n        JOIN gitlab_commits c ON mc.commit_sha = c.sha AND mc.project_id = c.project_id\n        GROUP BY mc.mr_id\n      ) s\n    )\n  )\nGROUP BY mr.author_username\nORDER BY \"MRs\" DESC",
+          "format": "table"
+        }
+      ],
+      "description": "Média de arquivos alterados e linhas modificadas (add + del) por MR, agrupado por autor. MRs muito grandes (> 500 linhas) tendem a receber revisões superficiais, aumentando o risco de bugs passarem despercebidos."
+    },
+    {
+      "id": 8,
+      "type": "row",
+      "title": "Commits e Linhas de Código",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 59
+      },
+      "collapsed": false
+    },
+    {
+      "id": 9,
+      "title": "Commits por Mês",
+      "type": "barchart",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 60
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "gitlab-metrics"
+      },
+      "options": {
+        "orientation": "vertical",
+        "xTickLabelRotation": -45,
+        "tooltip": {
+          "mode": "multi"
+        },
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "sum"
+          ]
+        }
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT\n  TO_CHAR(date_trunc('month', committed_date), 'Mon/YYYY') AS \"Mês\",\n  COUNT(*) AS \"Commits\"\nFROM gitlab_commits\nWHERE\n  committed_date BETWEEN $__timeFrom() AND $__timeTo()\n  AND project_id IN (SELECT id FROM gitlab_projects WHERE path_with_namespace ~ '${project:pipe}')\n  AND (author_username ~ '${author:pipe}' OR author_name ~ '${author:pipe}')\nGROUP BY date_trunc('month', committed_date)\nORDER BY date_trunc('month', committed_date)",
+          "format": "table"
+        }
+      ],
+      "description": "Volume de commits por semana, incluindo commits em branches abertas e MRs. Indica nível de atividade de desenvolvimento. Semanas com zero commits podem indicar feriados, bloqueios ou sprint planning.",
+      "fieldConfig": {
+        "defaults": {}
+      }
+    },
+    {
+      "id": 10,
+      "title": "Linhas Modificadas por Mês (add + del)",
+      "type": "barchart",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 60
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "gitlab-metrics"
+      },
+      "options": {
+        "orientation": "vertical",
+        "xTickLabelRotation": -45,
+        "tooltip": {
+          "mode": "multi"
+        },
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "sum"
+          ]
+        }
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT\n  TO_CHAR(date_trunc('month', committed_date), 'Mon/YYYY') AS \"Mês\",\n  SUM(additions + deletions) AS \"Linhas\"\nFROM gitlab_commits\nWHERE\n  committed_date BETWEEN $__timeFrom() AND $__timeTo()\n  AND project_id IN (SELECT id FROM gitlab_projects WHERE path_with_namespace ~ '${project:pipe}')\n  AND (author_username ~ '${author:pipe}' OR author_name ~ '${author:pipe}')\n  AND (\n    '${outliers}' = 'incluir'\n    OR (additions + deletions) <= (\n      SELECT PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY additions + deletions)\n      FROM gitlab_commits\n      WHERE committed_date BETWEEN $__timeFrom() AND $__timeTo()\n        AND additions + deletions > 0\n    )\n  )\nGROUP BY date_trunc('month', committed_date)\nORDER BY date_trunc('month', committed_date)",
+          "format": "table"
+        }
+      ],
+      "description": "Soma de linhas adicionadas e deletadas por semana, proxy de volume de mudanças no código. Não mede qualidade: refatorações de limpeza podem ter alto volume sem entregar funcionalidade nova. Analise em conjunto com throughput de MRs e commits.",
+      "fieldConfig": {
+        "defaults": {}
+      }
+    },
+    {
+      "id": 11,
+      "title": "Commits e Linhas por Autor",
+      "type": "table",
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 68
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "gitlab-metrics"
+      },
+      "options": {
+        "sortBy": [
+          {
+            "displayName": "Commits",
+            "desc": true
+          }
+        ]
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT\n  COALESCE(author_username, author_name)  AS \"Autor\",\n  COUNT(*)                                AS \"Commits\",\n  SUM(additions)                          AS \"Linhas Adicionadas\",\n  SUM(deletions)                          AS \"Linhas Removidas\",\n  SUM(additions + deletions)              AS \"Total Linhas\",\n  ROUND(AVG(additions + deletions), 0)    AS \"Linhas/Commit (média)\"\nFROM gitlab_commits\nWHERE\n  committed_date BETWEEN $__timeFrom() AND $__timeTo()\n  AND project_id IN (SELECT id FROM gitlab_projects WHERE path_with_namespace ~ '${project:pipe}')\n  AND (COALESCE(author_username, author_name) ~ '${author:pipe}')\n  AND (\n    '${outliers}' = 'incluir'\n    OR (additions + deletions) <= (\n      SELECT PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY additions + deletions)\n      FROM gitlab_commits\n      WHERE committed_date BETWEEN $__timeFrom() AND $__timeTo()\n        AND additions + deletions > 0\n    )\n  )\nGROUP BY COALESCE(author_username, author_name)\nORDER BY \"Commits\" DESC",
+          "format": "table"
+        }
+      ],
+      "description": "Por autor no período: total de commits, linhas adicionadas, linhas deletadas e saldo líquido. Saldo negativo (mais deleções que adições) geralmente indica refatoração ou limpeza de código."
+    },
+    {
+      "id": 12,
+      "type": "row",
+      "title": "Code Review",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "collapsed": false
+    },
+    {
+      "id": 13,
+      "title": "Participação em Code Review (comentários em MRs alheios)",
+      "type": "table",
+      "gridPos": {
+        "h": 10,
+        "w": 14,
+        "x": 0,
+        "y": 1
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "gitlab-metrics"
+      },
+      "options": {
+        "sortBy": [
+          {
+            "displayName": "MRs Revisados",
+            "desc": true
+          }
+        ]
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT\n  n.author_username                     AS \"Revisor\",\n  COUNT(DISTINCT n.mr_id)               AS \"MRs Revisados\",\n  COUNT(*) FILTER (WHERE NOT n.system)  AS \"Comentários Feitos\",\n  ROUND(\n    COUNT(*) FILTER (WHERE NOT n.system)::numeric\n    / NULLIF(COUNT(DISTINCT n.mr_id), 0)\n  , 1)                                  AS \"Coment./MR\"\nFROM gitlab_mr_notes n\nJOIN gitlab_merge_requests mr ON n.mr_id = mr.id\nJOIN gitlab_projects p ON mr.project_id = p.id\nWHERE\n  NOT n.system\n  AND n.author_username != mr.author_username\n  AND n.created_at BETWEEN $__timeFrom() AND $__timeTo()\n  AND p.path_with_namespace ~ '${project:pipe}'\nGROUP BY n.author_username\nORDER BY \"MRs Revisados\" DESC",
+          "format": "table"
+        }
+      ],
+      "description": "Conta comentários feitos em MRs de outros autores, proxy de engajamento em revisão de código. Não inclui auto-comentários. Baixa participação de alguns membros pode indicar silos de conhecimento ou sobrecarga."
+    },
+    {
+      "id": 14,
+      "title": "Tempo Médio de 1ª Resposta no Review (h)",
+      "type": "table",
+      "gridPos": {
+        "h": 10,
+        "w": 10,
+        "x": 14,
+        "y": 1
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "gitlab-metrics"
+      },
+      "options": {
+        "sortBy": [
+          {
+            "displayName": "MRs",
+            "desc": true
+          }
+        ]
+      },
+      "fieldConfig": {
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Tempo 1ª Resposta (h)"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "h"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              }
+            ]
+          }
+        ]
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT\n  mr.author_username AS \"Autor\",\n  COUNT(*)           AS \"MRs\",\n  ROUND(AVG(\n    EXTRACT(EPOCH FROM (first_note.created_at - mr.created_at)) / 3600.0\n  ), 1)              AS \"Tempo 1ª Resposta (h)\"\nFROM gitlab_merge_requests mr\nJOIN gitlab_projects p ON mr.project_id = p.id\nJOIN LATERAL (\n  SELECT MIN(n.created_at) AS created_at\n  FROM gitlab_mr_notes n\n  WHERE n.mr_id = mr.id\n    AND NOT n.system\n    AND n.author_username != mr.author_username\n) first_note ON TRUE\nWHERE\n  mr.created_at BETWEEN $__timeFrom() AND $__timeTo()\n  AND p.path_with_namespace ~ '${project:pipe}'\n  AND mr.author_username ~ '${author:pipe}'\n  AND (\n    '${outliers}' = 'incluir'\n    OR EXTRACT(EPOCH FROM (first_note.created_at - mr.created_at)) / 3600.0 <= (\n      SELECT PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY response_hours)\n      FROM (\n        SELECT EXTRACT(EPOCH FROM (MIN(n.created_at) - mr2.created_at)) / 3600.0 AS response_hours\n        FROM gitlab_merge_requests mr2\n        JOIN gitlab_mr_notes n ON n.mr_id = mr2.id\n          AND NOT n.system\n          AND n.author_username != mr2.author_username\n        WHERE mr2.created_at BETWEEN $__timeFrom() AND $__timeTo()\n        GROUP BY mr2.id, mr2.created_at\n      ) t\n    )\n  )\nGROUP BY mr.author_username\nORDER BY \"MRs\" DESC",
+          "format": "table"
+        }
+      ],
+      "description": "Tempo entre a abertura do MR e o primeiro comentário de qualquer outro autor, em horas. Mede a agilidade do time em iniciar revisões. Valores acima de 24h indicam que MRs ficam aguardando reviewer por muito tempo."
+    },
+    {
+      "id": 15,
+      "type": "row",
+      "title": "Taxa de Retrabalho",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 11
+      },
+      "collapsed": false
+    },
+    {
+      "id": 16,
+      "title": "Taxa de Retrabalho por Autor (proxy: commits com fix/revert/bug)",
+      "description": "Proxy baseado em mensagens de commit: commits que contêm 'fix', 'revert', 'bug', 'hotfix' ou 'correction' são classificados como retrabalho. Limitação: subestima retrabalho sem essas palavras-chave e pode superestimar em times que usam 'fix' para ajustes normais. Use como tendência, não como valor absoluto.",
+      "type": "table",
+      "gridPos": {
+        "h": 10,
+        "w": 14,
+        "x": 0,
+        "y": 12
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "gitlab-metrics"
+      },
+      "options": {
+        "sortBy": [
+          {
+            "displayName": "Retrabalho %",
+            "desc": true
+          }
+        ]
+      },
+      "fieldConfig": {
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Retrabalho %"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              },
+              {
+                "id": "custom.displayMode",
+                "value": "color-background"
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 15
+                    },
+                    {
+                      "color": "red",
+                      "value": 30
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT\n  COALESCE(author_username, author_name)  AS \"Autor\",\n  COUNT(*)                                AS \"Total Commits\",\n  COUNT(*) FILTER (\n    WHERE title ~* '\\y(fix|revert|hotfix|bug|patch|correction)\\y'\n  )                                       AS \"Commits Retrabalho\",\n  ROUND(\n    100.0 * COUNT(*) FILTER (\n      WHERE title ~* '\\y(fix|revert|hotfix|bug|patch|correction)\\y'\n    ) / NULLIF(COUNT(*), 0)\n  , 1)                                    AS \"Retrabalho %\"\nFROM gitlab_commits\nWHERE\n  committed_date BETWEEN $__timeFrom() AND $__timeTo()\n  AND project_id IN (SELECT id FROM gitlab_projects WHERE path_with_namespace ~ '${project:pipe}')\n  AND (COALESCE(author_username, author_name) ~ '${author:pipe}')\n  AND (\n    '${outliers}' = 'incluir'\n    OR (additions + deletions) <= (\n      SELECT PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY additions + deletions)\n      FROM gitlab_commits\n      WHERE committed_date BETWEEN $__timeFrom() AND $__timeTo()\n        AND additions + deletions > 0\n    )\n  )\nGROUP BY COALESCE(author_username, author_name)\nHAVING COUNT(*) >= 3\nORDER BY \"Retrabalho %\" DESC",
+          "format": "table"
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "title": "Retrabalho % ao Longo dos Meses",
+      "type": "barchart",
+      "gridPos": {
+        "h": 10,
+        "w": 10,
+        "x": 14,
+        "y": 12
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "gitlab-metrics"
+      },
+      "options": {
+        "orientation": "vertical",
+        "xTickLabelRotation": -45,
+        "tooltip": {
+          "mode": "multi"
+        },
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100
+        }
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT\n  TO_CHAR(date_trunc('month', committed_date), 'Mon/YYYY') AS \"Mês\",\n  ROUND(\n    100.0 * COUNT(*) FILTER (\n      WHERE title ~* '\\y(fix|revert|hotfix|bug|patch|correction)\\y'\n    ) / NULLIF(COUNT(*), 0)\n  , 1) AS \"Retrabalho %\"\nFROM gitlab_commits\nWHERE\n  committed_date BETWEEN $__timeFrom() AND $__timeTo()\n  AND project_id IN (SELECT id FROM gitlab_projects WHERE path_with_namespace ~ '${project:pipe}')\n  AND (\n    '${outliers}' = 'incluir'\n    OR (additions + deletions) <= (\n      SELECT PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY additions + deletions)\n      FROM gitlab_commits\n      WHERE committed_date BETWEEN $__timeFrom() AND $__timeTo()\n        AND additions + deletions > 0\n    )\n  )\nGROUP BY date_trunc('month', committed_date)\nORDER BY date_trunc('month', committed_date)",
+          "format": "table"
+        }
+      ],
+      "description": "Percentual semanal de commits classificados como retrabalho (mensagem com fix/revert/bug) sobre o total de commits da semana. Tendência crescente pode indicar pressão por velocidade sacrificando qualidade, ou aumento de bugs em produção exigindo correções urgentes."
+    },
+    {
+      "id": 18,
+      "type": "row",
+      "title": "Pipelines & CI/CD",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 22
+      },
+      "collapsed": false
+    },
+    {
+      "id": 19,
+      "title": "Taxa de Sucesso de Pipelines por Projeto",
+      "type": "table",
+      "gridPos": {
+        "h": 8,
+        "w": 14,
+        "x": 0,
+        "y": 23
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "gitlab-metrics"
+      },
+      "options": {
+        "sortBy": [
+          {
+            "displayName": "Total",
+            "desc": true
+          }
+        ]
+      },
+      "fieldConfig": {
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Sucesso %"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              },
+              {
+                "id": "custom.displayMode",
+                "value": "color-background"
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "red",
+                      "value": null
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 70
+                    },
+                    {
+                      "color": "green",
+                      "value": 90
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Duração Média (min)"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "m"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              }
+            ]
+          }
+        ]
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT\n  p.path_with_namespace                       AS \"Projeto\",\n  COUNT(*)                                    AS \"Total\",\n  COUNT(*) FILTER (WHERE pi.status='success') AS \"Sucesso\",\n  COUNT(*) FILTER (WHERE pi.status='failed')  AS \"Falha\",\n  ROUND(\n    100.0 * COUNT(*) FILTER (WHERE pi.status='success')\n    / NULLIF(COUNT(*), 0)\n  , 1)                                        AS \"Sucesso %\",\n  ROUND((AVG(pi.duration) / 60.0)::numeric, 1)          AS \"Duração Média (min)\"\nFROM gitlab_pipelines pi\nJOIN gitlab_projects p ON pi.project_id = p.id\nWHERE\n  pi.created_at BETWEEN $__timeFrom() AND $__timeTo()\n  AND p.path_with_namespace ~ '${project:pipe}'\n  AND (\n    '${outliers}' = 'incluir'\n    OR pi.duration IS NULL\n    OR pi.duration <= (\n      SELECT PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY duration)\n      FROM gitlab_pipelines\n      WHERE duration IS NOT NULL\n        AND created_at BETWEEN $__timeFrom() AND $__timeTo()\n    )\n  )\nGROUP BY p.path_with_namespace\nORDER BY \"Total\" DESC",
+          "format": "table"
+        }
+      ],
+      "description": "Por projeto: total de pipelines executados, quantidade de sucesso, de falha e percentual de sucesso. Projetos com taxa abaixo de 80% merecem atenção, podem indicar testes frágeis, infraestrutura instável ou merges problemáticos."
+    },
+    {
+      "id": 20,
+      "title": "Pipelines por Status ao Longo dos Meses",
+      "type": "barchart",
+      "gridPos": {
+        "h": 8,
+        "w": 10,
+        "x": 14,
+        "y": 23
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "gitlab-metrics"
+      },
+      "options": {
+        "orientation": "vertical",
+        "xTickLabelRotation": -45,
+        "tooltip": {
+          "mode": "multi"
+        },
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "sum"
+          ]
+        }
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT\n  TO_CHAR(date_trunc('month', created_at), 'Mon/YYYY') AS \"Mês\",\n  COUNT(*) FILTER (WHERE status = 'success') AS \"Sucesso\",\n  COUNT(*) FILTER (WHERE status = 'failed')  AS \"Falha\",\n  COUNT(*) FILTER (WHERE status = 'canceled') AS \"Cancelado\"\nFROM gitlab_pipelines\nWHERE\n  created_at BETWEEN $__timeFrom() AND $__timeTo()\n  AND project_id IN (SELECT id FROM gitlab_projects WHERE path_with_namespace ~ '${project:pipe}')\nGROUP BY date_trunc('month', created_at)\nORDER BY date_trunc('month', created_at)",
+          "format": "table"
+        }
+      ],
+      "description": "Volume semanal de pipelines agrupado por status (success / failed / canceled). Picos de falha (failed) podem indicar instabilidade introduzida por mudanças recentes. Alta taxa de canceled pode indicar pipelines redundantes ou falta de paciência com CI lento.",
+      "fieldConfig": {
+        "defaults": {}
+      }
+    },
+    {
+      "id": 30,
+      "type": "row",
+      "title": "Deployments & Deploy Frequency",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 80
+      },
+      "collapsed": false
+    },
+    {
+      "id": 31,
+      "title": "Deploys por Semana",
+      "type": "barchart",
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 81
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "gitlab-metrics"
+      },
+      "options": {
+        "orientation": "vertical",
+        "xTickLabelRotation": -45,
+        "stacking": "normal",
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        },
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "sum",
+            "mean"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Sucesso" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Falha" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Cancelado" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "yellow", "mode": "fixed" } }]
+          }
+        ]
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT\n  TO_CHAR(date_trunc('week', COALESCE(d.finished_at, d.updated_at)), 'DD/Mon') AS \"Semana\",\n  COUNT(*) FILTER (WHERE d.status = 'success')  AS \"Sucesso\",\n  COUNT(*) FILTER (WHERE d.status = 'failed')   AS \"Falha\",\n  COUNT(*) FILTER (WHERE d.status = 'canceled') AS \"Cancelado\"\nFROM gitlab_deployments d\nJOIN gitlab_projects p ON d.project_id = p.id\nWHERE\n  COALESCE(d.finished_at, d.updated_at) BETWEEN $__timeFrom() AND $__timeTo()\n  AND p.path_with_namespace ~ '${project:pipe}'\n  AND ('${env:pipe}' = '.*' OR d.environment ~ '${env:pipe}')\nGROUP BY date_trunc('week', COALESCE(d.finished_at, d.updated_at))\nORDER BY date_trunc('week', COALESCE(d.finished_at, d.updated_at))",
+          "format": "table"
+        }
+      ],
+      "description": "Deploy Frequency (métrica DORA): deploys por semana empilhados por status. Contagem baseada na data de conclusão (finished_at) ou última atualização. Use a variável Ambiente para focar em produção e medir a cadência real de entregas para usuários."
+    },
+    {
+      "id": 32,
+      "title": "Deploys por Ambiente",
+      "type": "piechart",
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 89
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "gitlab-metrics"
+      },
+      "options": {
+        "pieType": "donut",
+        "tooltip": {
+          "mode": "multi"
+        },
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "sum",
+            "percent"
+          ]
+        }
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT\n  COALESCE(d.environment, '(sem ambiente)') AS \"Ambiente\",\n  COUNT(*) AS \"Deploys\"\nFROM gitlab_deployments d\nJOIN gitlab_projects p ON d.project_id = p.id\nWHERE\n  COALESCE(d.finished_at, d.updated_at) BETWEEN $__timeFrom() AND $__timeTo()\n  AND d.status = 'success'\n  AND p.path_with_namespace ~ '${project:pipe}'\n  AND ('${env:pipe}' = '.*' OR d.environment ~ '${env:pipe}')\nGROUP BY d.environment\nORDER BY \"Deploys\" DESC",
+          "format": "table"
+        }
+      ],
+      "description": "Distribuição de deploys bem-sucedidos por ambiente (production, staging, ...) no período selecionado. Útil para entender para onde o time está enviando mais código."
+    },
+    {
+      "id": 33,
+      "title": "Deploy Frequency por Projeto",
+      "type": "table",
+      "gridPos": {
+        "h": 8,
+        "w": 16,
+        "x": 8,
+        "y": 89
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "gitlab-metrics"
+      },
+      "options": {
+        "sortBy": [
+          {
+            "displayName": "Sucesso",
+            "desc": true
+          }
+        ]
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "center"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Projeto" },
+            "properties": [
+              { "id": "custom.align", "value": "left" },
+              { "id": "custom.width", "value": 260 }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Sucesso %" },
+            "properties": [
+              { "id": "unit", "value": "percent" },
+              { "id": "custom.displayMode", "value": "color-background" },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    { "color": "red",    "value": null },
+                    { "color": "yellow", "value": 80 },
+                    { "color": "green",  "value": 95 }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Deploys/Semana" },
+            "properties": [
+              { "id": "decimals", "value": 2 },
+              { "id": "custom.displayMode", "value": "color-background-solid" },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    { "color": "red",    "value": null },
+                    { "color": "yellow", "value": 1 },
+                    { "color": "green",  "value": 3 }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Último Deploy" },
+            "properties": [
+              { "id": "unit", "value": "dateTimeFromNow" }
+            ]
+          }
+        ]
+      },
+      "targets": [
+        {
+          "rawSql": "WITH periodo AS (\n  SELECT\n    $__timeFrom() AS inicio,\n    $__timeTo()   AS fim,\n    GREATEST(\n      EXTRACT(EPOCH FROM ($__timeTo() - $__timeFrom())) / (7 * 24 * 3600),\n      0.1\n    ) AS semanas\n)\nSELECT\n  p.path_with_namespace                        AS \"Projeto\",\n  COUNT(*)                                     AS \"Total\",\n  COUNT(*) FILTER (WHERE d.status = 'success') AS \"Sucesso\",\n  COUNT(*) FILTER (WHERE d.status = 'failed')  AS \"Falha\",\n  ROUND(\n    100.0 * COUNT(*) FILTER (WHERE d.status = 'success')\n    / NULLIF(COUNT(*), 0)\n  , 1)                                         AS \"Sucesso %\",\n  ROUND((\n    COUNT(*) FILTER (WHERE d.status = 'success')::numeric\n    / (SELECT semanas FROM periodo)\n  ), 2)                                        AS \"Deploys/Semana\",\n  MAX(COALESCE(d.finished_at, d.updated_at)) FILTER (WHERE d.status = 'success') AS \"Último Deploy\"\nFROM gitlab_deployments d\nJOIN gitlab_projects p ON d.project_id = p.id\nWHERE\n  COALESCE(d.finished_at, d.updated_at) BETWEEN $__timeFrom() AND $__timeTo()\n  AND p.path_with_namespace ~ '${project:pipe}'\n  AND ('${env:pipe}' = '.*' OR d.environment ~ '${env:pipe}')\nGROUP BY p.path_with_namespace\nORDER BY COUNT(*) FILTER (WHERE d.status = 'success') DESC",
+          "format": "table"
+        }
+      ],
+      "description": "Deploy frequency por projeto no período selecionado: total, sucessos, falhas, taxa de sucesso, média de deploys/semana e timestamp do último deploy bem-sucedido. Use em conjunto com o filtro de Ambiente para medir entregas em produção (referencial DORA: Elite ≥ 1/dia, High ≥ 1/semana, Medium ≥ 1/mês)."
+    }
+  ]
+}

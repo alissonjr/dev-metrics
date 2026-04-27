@@ -1,0 +1,1253 @@
+{
+  "title": "Jira Kanban Metrics",
+  "uid": "jira-kanban-metrics",
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "5m",
+  "time": {
+    "from": "now-90d",
+    "to": "now"
+  },
+  "timezone": "browser",
+  "tags": [
+    "jira",
+    "kanban",
+    "engineering"
+  ],
+  "editable": true,
+  "graphTooltip": 1,
+  "links": [],
+  "annotations": {
+    "list": []
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "jira_url",
+        "label": "Jira URL",
+        "type": "constant",
+        "query": "https://your-team.atlassian.net",
+        "current": {
+          "text": "https://your-team.atlassian.net",
+          "value": "https://your-team.atlassian.net"
+        },
+        "hide": 2
+      },
+      {
+        "name": "project",
+        "label": "Projeto",
+        "type": "query",
+        "datasource": {
+          "type": "postgres",
+          "uid": "gitlab-metrics"
+        },
+        "query": "SELECT DISTINCT project_key AS __text, project_key AS __value FROM jira_issues ORDER BY 1",
+        "refresh": 1,
+        "includeAll": true,
+        "allValue": ".*",
+        "multi": true,
+        "hide": 0,
+        "current": {}
+      },
+      {
+        "name": "board",
+        "label": "Quadro",
+        "type": "query",
+        "datasource": {
+          "type": "postgres",
+          "uid": "gitlab-metrics"
+        },
+        "query": "SELECT DISTINCT name FROM jira_boards ORDER BY 1",
+        "refresh": 1,
+        "includeAll": true,
+        "allValue": ".*",
+        "multi": true,
+        "hide": 0,
+        "current": {}
+      },
+      {
+        "name": "assignee",
+        "label": "Colaborador",
+        "type": "query",
+        "datasource": {
+          "type": "postgres",
+          "uid": "gitlab-metrics"
+        },
+        "query": "SELECT DISTINCT assignee FROM jira_issues WHERE assignee IS NOT NULL ORDER BY 1",
+        "refresh": 1,
+        "includeAll": true,
+        "allValue": ".*",
+        "multi": true,
+        "hide": 0,
+        "current": {}
+      },
+      {
+        "name": "issue_type",
+        "label": "Tipo de Card",
+        "type": "query",
+        "datasource": {
+          "type": "postgres",
+          "uid": "gitlab-metrics"
+        },
+        "query": "SELECT DISTINCT issue_type FROM jira_issues WHERE issue_type IS NOT NULL AND issue_type NOT IN ('Subtask', 'Sub-task', 'Subtarefa') ORDER BY 1",
+        "refresh": 1,
+        "includeAll": true,
+        "allValue": ".*",
+        "multi": true,
+        "hide": 0,
+        "current": {}
+      },
+      {
+        "name": "metric",
+        "label": "Distribuição por",
+        "type": "custom",
+        "options": [
+          {
+            "text": "Qtd de Cards",
+            "value": "count"
+          },
+          {
+            "text": "Horas Somadas",
+            "value": "hours"
+          }
+        ],
+        "current": {
+          "text": "Qtd de Cards",
+          "value": "count"
+        },
+        "hide": 0
+      },
+      {
+        "name": "outliers",
+        "label": "Outliers",
+        "type": "custom",
+        "query": "excluir,incluir",
+        "options": [
+          {
+            "text": "Excluir outliers (p95)",
+            "value": "excluir",
+            "selected": true
+          },
+          {
+            "text": "Incluir todos",
+            "value": "incluir",
+            "selected": false
+          }
+        ],
+        "current": {
+          "text": "Excluir outliers (p95)",
+          "value": "excluir"
+        },
+        "hide": 0,
+        "includeAll": false,
+        "multi": false,
+        "refresh": 0
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 100,
+      "type": "row",
+      "title": "Throughput: Cards Entregues",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 17
+      },
+      "collapsed": false
+    },
+    {
+      "id": 101,
+      "title": "Cards Concluídos por Mês",
+      "type": "barchart",
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 18
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "gitlab-metrics"
+      },
+      "options": {
+        "orientation": "vertical",
+        "xTickLabelRotation": -45,
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        },
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "sum",
+            "mean"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          }
+        }
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT\n  TO_CHAR(date_trunc('month', resolved_at), 'Mon/YYYY') AS \"Mês\",\n  COUNT(*) AS \"Cards Concluídos\"\nFROM jira_issues\nWHERE\n  resolved_at BETWEEN $__timeFrom() AND $__timeTo()\n  AND issue_type NOT IN ('Subtask', 'Sub-task', 'Subtarefa')\n  AND project_key ~ '${project:pipe}'\n  AND ('${assignee:pipe}' = '.*' OR assignee ~ '${assignee:pipe}')\n  AND ('${issue_type:pipe}' = '.*' OR issue_type ~ '${issue_type:pipe}')\n  AND (\n    '${board:pipe}' = '.*' OR\n    board_id IN (SELECT id FROM jira_boards WHERE name ~ '${board:pipe}')\n  )\nGROUP BY date_trunc('month', resolved_at)\nORDER BY date_trunc('month', resolved_at)",
+          "format": "table"
+        }
+      ],
+      "description": "Contagem de cards finalizados (status_category = 'done') por mês, agrupados pela data de resolução (resolved_at). Filtros de projeto, responsável e tipo de card aplicados acima."
+    },
+    {
+      "id": 103,
+      "title": "Story Points Entregues por Mês",
+      "type": "barchart",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 26
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "gitlab-metrics"
+      },
+      "options": {
+        "orientation": "vertical",
+        "xTickLabelRotation": -45,
+        "tooltip": {
+          "mode": "multi"
+        },
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "sum",
+            "mean"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "purple",
+            "mode": "fixed"
+          }
+        }
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT\n  TO_CHAR(date_trunc('month', resolved_at), 'Mon/YYYY') AS \"Mês\",\n  COALESCE(SUM(story_points), 0) AS \"Story Points\"\nFROM jira_issues\nWHERE\n  resolved_at BETWEEN $__timeFrom() AND $__timeTo()\n  AND issue_type NOT IN ('Subtask', 'Sub-task', 'Subtarefa')\n  AND project_key ~ '${project:pipe}'\n  AND ('${assignee:pipe}' = '.*' OR assignee ~ '${assignee:pipe}')\n  AND ('${issue_type:pipe}' = '.*' OR issue_type ~ '${issue_type:pipe}')\nGROUP BY date_trunc('month', resolved_at)\nORDER BY date_trunc('month', resolved_at)",
+          "format": "table"
+        }
+      ],
+      "description": "Soma dos story points dos cards resolvidos por mês. Cards sem estimativa de SP são excluídos desta contagem. Use em paralelo com a contagem de cards para medir consistência de estimativas."
+    },
+    {
+      "id": 104,
+      "title": "Cards Criados vs Concluídos por Mês",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 26
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "gitlab-metrics"
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi"
+        },
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "sum"
+          ]
+        },
+        "xTickLabelSpacing": 100
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "lineWidth": 2
+          }
+        }
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT\n  date_trunc('month', created_at) AS time,\n  COUNT(*) AS \"Cards Criados\"\nFROM jira_issues\nWHERE\n  created_at BETWEEN $__timeFrom() AND $__timeTo()\n  AND issue_type NOT IN ('Subtask', 'Sub-task', 'Subtarefa')\n  AND project_key ~ '${project:pipe}'\n  AND ('${assignee:pipe}' = '.*' OR assignee ~ '${assignee:pipe}')\n  AND ('${issue_type:pipe}' = '.*' OR issue_type ~ '${issue_type:pipe}')\nGROUP BY 1\nORDER BY 1",
+          "format": "time_series",
+          "interval": "1M"
+        },
+        {
+          "rawSql": "SELECT\n  date_trunc('month', resolved_at) AS time,\n  COUNT(*) AS \"Cards Concluídos\"\nFROM jira_issues\nWHERE\n  resolved_at BETWEEN $__timeFrom() AND $__timeTo()\n  AND issue_type NOT IN ('Subtask', 'Sub-task', 'Subtarefa')\n  AND project_key ~ '${project:pipe}'\n  AND ('${assignee:pipe}' = '.*' OR assignee ~ '${assignee:pipe}')\n  AND ('${issue_type:pipe}' = '.*' OR issue_type ~ '${issue_type:pipe}')\nGROUP BY 1\nORDER BY 1",
+          "format": "time_series",
+          "interval": "1M"
+        }
+      ],
+      "description": "Criados = cards com created_at no mês (entrada na fila). Concluídos = cards com resolved_at no mês (saída). Quando 'Criados' supera 'Concluídos' consistentemente, o backlog cresce, sinal de gargalo.",
+      "maxDataPoints": 100,
+      "interval": "30d"
+    },
+    {
+      "id": 110,
+      "type": "row",
+      "title": "Lead Time & Cycle Time",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 34
+      },
+      "collapsed": false
+    },
+    {
+      "id": 111,
+      "title": "Lead Time por Mês (h)",
+      "type": "barchart",
+      "description": "Lead Time = tempo entre a criação do card (created_at) e sua resolução (resolved_at), em horas. Inclui todo o tempo de espera em backlog, filas de review, QA e bloqueios. Média calculada sobre cards resolvidos no mês.",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 35
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "gitlab-metrics"
+      },
+      "options": {
+        "orientation": "vertical",
+        "xTickLabelRotation": -45,
+        "tooltip": {
+          "mode": "multi"
+        },
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "last"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "h"
+        }
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT\n  TO_CHAR(date_trunc('month', resolved_at), 'Mon/YYYY') AS \"Mês\",\n  ROUND(AVG(lead_time_hours)::numeric, 1) AS \"Lead Time Médio (h)\",\n  ROUND(PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY lead_time_hours)::numeric, 1) AS \"Mediana (h)\"\nFROM jira_issues\nWHERE\n  resolved_at BETWEEN $__timeFrom() AND $__timeTo()\n  AND lead_time_hours IS NOT NULL\n  AND issue_type NOT IN ('Subtask', 'Sub-task', 'Subtarefa')\n  AND project_key ~ '${project:pipe}'\n  AND ('${assignee:pipe}' = '.*' OR assignee ~ '${assignee:pipe}')\n  AND ('${issue_type:pipe}' = '.*' OR issue_type ~ '${issue_type:pipe}')\n  AND (\n    '${outliers}' = 'incluir'\n    OR lead_time_hours IS NULL\n    OR lead_time_hours <= (\n      SELECT PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY lead_time_hours)\n      FROM jira_issues\n      WHERE resolved_at IS NOT NULL AND lead_time_hours IS NOT NULL\n        AND issue_type NOT IN ('Subtask', 'Sub-task', 'Subtarefa')\n        AND resolved_at BETWEEN $__timeFrom() AND $__timeTo()\n    )\n  )\nGROUP BY date_trunc('month', resolved_at)\nORDER BY date_trunc('month', resolved_at)",
+          "format": "table"
+        }
+      ]
+    },
+    {
+      "id": 112,
+      "title": "Cycle Time por Mês (h)",
+      "type": "barchart",
+      "description": "Cycle Time = tempo entre a primeira transição para um status ativo (categoria 'indeterminate', ex: In Progress, Fazendo) e a resolução do card, em horas. Exclui o tempo de espera em Backlog e A Fazer (categoria 'new'). Mede o tempo real de execução após o time pegar o card.",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 35
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "gitlab-metrics"
+      },
+      "options": {
+        "orientation": "vertical",
+        "xTickLabelRotation": -45,
+        "tooltip": {
+          "mode": "multi"
+        },
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "last"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "h",
+          "color": {
+            "fixedColor": "orange",
+            "mode": "fixed"
+          }
+        }
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT\n  TO_CHAR(date_trunc('month', resolved_at), 'Mon/YYYY') AS \"Mês\",\n  ROUND(AVG(cycle_time_hours)::numeric, 1) AS \"Cycle Time Médio (h)\",\n  ROUND(PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY cycle_time_hours)::numeric, 1) AS \"Mediana (h)\"\nFROM jira_issues\nWHERE\n  resolved_at BETWEEN $__timeFrom() AND $__timeTo()\n  AND cycle_time_hours IS NOT NULL\n  AND issue_type NOT IN ('Subtask', 'Sub-task', 'Subtarefa')\n  AND project_key ~ '${project:pipe}'\n  AND ('${assignee:pipe}' = '.*' OR assignee ~ '${assignee:pipe}')\n  AND ('${issue_type:pipe}' = '.*' OR issue_type ~ '${issue_type:pipe}')\n  AND (\n    '${outliers}' = 'incluir'\n    OR cycle_time_hours IS NULL\n    OR cycle_time_hours <= (\n      SELECT PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY cycle_time_hours)\n      FROM jira_issues\n      WHERE resolved_at IS NOT NULL AND cycle_time_hours IS NOT NULL\n        AND issue_type NOT IN ('Subtask', 'Sub-task', 'Subtarefa')\n        AND resolved_at BETWEEN $__timeFrom() AND $__timeTo()\n    )\n  )\nGROUP BY date_trunc('month', resolved_at)\nORDER BY date_trunc('month', resolved_at)",
+          "format": "table"
+        }
+      ]
+    },
+    {
+      "id": 120,
+      "type": "row",
+      "title": "Action Time & Awaiting Time",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 44
+      },
+      "collapsed": false
+    },
+    {
+      "id": 121,
+      "title": "Action Time vs Awaiting Time por Colaborador (h médio)",
+      "type": "barchart",
+      "description": "Action Time = soma das horas em que o card esteve em status de categoria 'indeterminate' (ex: In Progress, Review, QA, Fazendo, Em andamento, configurado via JIRA_ACTIVE_CATEGORIES). Awaiting Time = Lead Time − Action Time = tempo parado em fila, backlog ou bloqueado. Razão alta de Awaiting/Action indica gargalos fora do controle do desenvolvedor.",
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 45
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "gitlab-metrics"
+      },
+      "options": {
+        "orientation": "horizontal",
+        "xTickLabelRotation": 0,
+        "stacking": "normal",
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        },
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "mean"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "h",
+          "links": [
+            {
+              "title": "Ver lista de issues →",
+              "url": "/d/jira-issue-list/jira-lista-de-issues?var-assignee_filter=${__series.name}&var-resolved_filter=resolvidos&var-jira_url=${jira_url}",
+              "targetBlank": true
+            }
+          ]
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Action Time (h)"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "green",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Awaiting Time (h)"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "yellow",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT\n  assignee AS \"Colaborador\",\n  ROUND(AVG(action_time_hours)::numeric,   1) AS \"Action Time (h)  ·  Fazendo · In Progress · QA · QA Feature · QA Reprovado · Review · Pronto para Produção\",\n  ROUND(AVG(awaiting_time_hours)::numeric, 1) AS \"Awaiting Time (h)  ·  A Fazer · Backlog  (= Lead Time − Action Time)\"\nFROM jira_issues\nWHERE\n  resolved_at BETWEEN $__timeFrom() AND $__timeTo()\n  AND action_time_hours IS NOT NULL\n  AND assignee IS NOT NULL\n  AND issue_type NOT IN ('Subtask', 'Sub-task', 'Subtarefa')\n  AND project_key ~ '${project:pipe}'\n  AND assignee ~ '${assignee:pipe}'\n  AND ('${issue_type:pipe}' = '.*' OR issue_type ~ '${issue_type:pipe}')\n  AND (\n    '${outliers}' = 'incluir'\n    OR lead_time_hours IS NULL\n    OR lead_time_hours <= (\n      SELECT PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY lead_time_hours)\n      FROM jira_issues\n      WHERE resolved_at IS NOT NULL AND lead_time_hours IS NOT NULL\n        AND issue_type NOT IN ('Subtask', 'Sub-task', 'Subtarefa')\n        AND resolved_at BETWEEN $__timeFrom() AND $__timeTo()\n    )\n  )\nGROUP BY assignee\nORDER BY (AVG(action_time_hours) + AVG(awaiting_time_hours)) DESC\nLIMIT 20",
+          "format": "table"
+        }
+      ]
+    },
+    {
+      "id": 124,
+      "title": "Action Time Médio por Status (h)",
+      "description": "Tempo médio que os cards passam em cada status de categoria 'indeterminate' (trabalho ativo). Calculado a partir das transições de status: cada barra mostra quanto tempo, em média, um card fica naquela coluna do Kanban. Status com tempo alto podem indicar gargalos no fluxo de trabalho.",
+      "type": "barchart",
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 0,
+        "y": 55
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "gitlab-metrics"
+      },
+      "options": {
+        "orientation": "horizontal",
+        "tooltip": {
+          "mode": "single"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "h",
+          "color": {
+            "fixedColor": "green",
+            "mode": "fixed"
+          },
+          "links": [
+            {
+              "title": "Ver lista de issues →",
+              "url": "/d/jira-issue-list/jira-lista-de-issues?var-status_filter=${__series.name}&var-resolved_filter=resolvidos&var-jira_url=${jira_url}",
+              "targetBlank": true
+            }
+          ]
+        }
+      },
+      "targets": [
+        {
+          "rawSql": "WITH status_durations AS (\n  SELECT\n    jt.issue_key,\n    jt.to_status AS status,\n    jt.to_category AS category,\n    EXTRACT(EPOCH FROM (\n      COALESCE(\n        LEAD(jt.transitioned_at) OVER (PARTITION BY jt.issue_key ORDER BY jt.transitioned_at),\n        CASE WHEN ji.resolved_at IS NOT NULL THEN ji.resolved_at ELSE NOW() END\n      ) - jt.transitioned_at\n    )) / 3600.0 AS hours_in_status\n  FROM jira_issue_transitions jt\n  JOIN jira_issues ji ON jt.issue_key = ji.issue_key\n  WHERE ji.resolved_at BETWEEN $__timeFrom() AND $__timeTo()\n    AND ji.issue_type NOT IN ('Subtask', 'Sub-task', 'Subtarefa')\n    AND ji.project_key ~ '${project:pipe}'\n    AND ('${assignee:pipe}' = '.*' OR ji.assignee ~ '${assignee:pipe}')\n    AND ('${issue_type:pipe}' = '.*' OR ji.issue_type ~ '${issue_type:pipe}')\n    AND (\n      '${outliers}' = 'incluir'\n      OR ji.lead_time_hours IS NULL\n      OR ji.lead_time_hours <= (\n        SELECT PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY lead_time_hours)\n        FROM jira_issues\n        WHERE resolved_at IS NOT NULL AND lead_time_hours IS NOT NULL\n          AND issue_type NOT IN ('Subtask', 'Sub-task', 'Subtarefa')\n          AND resolved_at BETWEEN $__timeFrom() AND $__timeTo()\n      )\n    )\n)\nSELECT\n  status AS \"Status\",\n  ROUND(AVG(hours_in_status)::numeric, 1) AS \"Tempo Médio (h)\"\nFROM status_durations\nWHERE category = 'indeterminate'\n  AND hours_in_status > 0\nGROUP BY status\nORDER BY AVG(hours_in_status) DESC",
+          "format": "table"
+        }
+      ]
+    },
+    {
+      "id": 125,
+      "title": "Awaiting Time Médio por Status (h)",
+      "description": "Tempo médio que os cards passam em cada status de categoria 'new' (A Fazer, Backlog) ou 'done' (aguardando deploy, etc.). Representa o tempo de espera fora do controle direto do desenvolvedor. Status com tempo alto indicam filas ou bloqueios que merecem atenção do processo.",
+      "type": "barchart",
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 12,
+        "y": 55
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "gitlab-metrics"
+      },
+      "options": {
+        "orientation": "horizontal",
+        "tooltip": {
+          "mode": "single"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "h",
+          "color": {
+            "fixedColor": "yellow",
+            "mode": "fixed"
+          },
+          "links": [
+            {
+              "title": "Ver lista de issues →",
+              "url": "/d/jira-issue-list/jira-lista-de-issues?var-status_filter=${__series.name}&var-resolved_filter=resolvidos&var-jira_url=${jira_url}",
+              "targetBlank": true
+            }
+          ]
+        }
+      },
+      "targets": [
+        {
+          "rawSql": "WITH status_durations AS (\n  SELECT\n    jt.issue_key,\n    jt.to_status AS status,\n    jt.to_category AS category,\n    EXTRACT(EPOCH FROM (\n      COALESCE(\n        LEAD(jt.transitioned_at) OVER (PARTITION BY jt.issue_key ORDER BY jt.transitioned_at),\n        CASE WHEN ji.resolved_at IS NOT NULL THEN ji.resolved_at ELSE NOW() END\n      ) - jt.transitioned_at\n    )) / 3600.0 AS hours_in_status\n  FROM jira_issue_transitions jt\n  JOIN jira_issues ji ON jt.issue_key = ji.issue_key\n  WHERE ji.resolved_at BETWEEN $__timeFrom() AND $__timeTo()\n    AND ji.issue_type NOT IN ('Subtask', 'Sub-task', 'Subtarefa')\n    AND ji.project_key ~ '${project:pipe}'\n    AND ('${assignee:pipe}' = '.*' OR ji.assignee ~ '${assignee:pipe}')\n    AND ('${issue_type:pipe}' = '.*' OR ji.issue_type ~ '${issue_type:pipe}')\n    AND (\n      '${outliers}' = 'incluir'\n      OR ji.lead_time_hours IS NULL\n      OR ji.lead_time_hours <= (\n        SELECT PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY lead_time_hours)\n        FROM jira_issues\n        WHERE resolved_at IS NOT NULL AND lead_time_hours IS NOT NULL\n          AND issue_type NOT IN ('Subtask', 'Sub-task', 'Subtarefa')\n          AND resolved_at BETWEEN $__timeFrom() AND $__timeTo()\n      )\n    )\n)\nSELECT\n  status AS \"Status\",\n  ROUND(AVG(hours_in_status)::numeric, 1) AS \"Tempo Médio (h)\"\nFROM status_durations\nWHERE category IN ('new', 'done')\n  AND hours_in_status > 0\nGROUP BY status\nORDER BY AVG(hours_in_status) DESC",
+          "format": "table"
+        }
+      ]
+    },
+    {
+      "id": 160,
+      "title": "Lead Time Médio por Coluna do Kanban (h)",
+      "type": "barchart",
+      "description": "Tempo médio (em horas) que os cards resolvidos no período passaram em cada coluna/status do Jira. Barras verdes = colunas de ação (status_category = 'indeterminate', onde o trabalho acontece). Barras amarelas = colunas de espera ('new', 'done'). Colunas de espera com tempo alto indicam gargalos no fluxo.",
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 0,
+        "y": 87
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "gitlab-metrics"
+      },
+      "options": {
+        "orientation": "vertical",
+        "xTickLabelRotation": -45,
+        "tooltip": {
+          "mode": "multi"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "h"
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Ação (h)" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Espera (h)" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "yellow", "mode": "fixed" } }]
+          }
+        ]
+      },
+      "targets": [
+        {
+          "rawSql": "WITH status_durations AS (\n  SELECT\n    jt.issue_key,\n    jt.to_status AS status,\n    jt.to_category AS category,\n    EXTRACT(EPOCH FROM (\n      COALESCE(\n        LEAD(jt.transitioned_at) OVER (PARTITION BY jt.issue_key ORDER BY jt.transitioned_at),\n        CASE WHEN ji.resolved_at IS NOT NULL THEN ji.resolved_at ELSE NOW() END\n      ) - jt.transitioned_at\n    )) / 3600.0 AS hours_in_status\n  FROM jira_issue_transitions jt\n  JOIN jira_issues ji ON jt.issue_key = ji.issue_key\n  WHERE ji.resolved_at BETWEEN $__timeFrom() AND $__timeTo()\n    AND ji.issue_type NOT IN ('Subtask', 'Sub-task', 'Subtarefa')\n    AND ji.project_key ~ '${project:pipe}'\n    AND ('${assignee:pipe}' = '.*' OR ji.assignee ~ '${assignee:pipe}')\n    AND ('${issue_type:pipe}' = '.*' OR ji.issue_type ~ '${issue_type:pipe}')\n    AND (\n      '${outliers}' = 'incluir'\n      OR ji.lead_time_hours IS NULL\n      OR ji.lead_time_hours <= (\n        SELECT PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY lead_time_hours)\n        FROM jira_issues\n        WHERE resolved_at IS NOT NULL AND lead_time_hours IS NOT NULL\n          AND issue_type NOT IN ('Subtask', 'Sub-task', 'Subtarefa')\n          AND resolved_at BETWEEN $__timeFrom() AND $__timeTo()\n      )\n    )\n)\nSELECT\n  status AS \"Status\",\n  CASE WHEN category = 'indeterminate' THEN ROUND(AVG(hours_in_status)::numeric, 1) END AS \"Ação (h)\",\n  CASE WHEN category != 'indeterminate' THEN ROUND(AVG(hours_in_status)::numeric, 1) END AS \"Espera (h)\"\nFROM status_durations\nWHERE hours_in_status > 0\nGROUP BY status, category\nORDER BY AVG(hours_in_status) DESC",
+          "format": "table"
+        }
+      ]
+    },
+    {
+      "id": 123,
+      "title": "Horas Somadas por Tipo de Tempo / Mês",
+      "type": "barchart",
+      "description": "Soma total (não média) de horas de Action Time e Awaiting Time de todos os cards resolvidos no mês. Action Time = horas em status 'indeterminate' (trabalho ativo). Awaiting Time = horas restantes do lead time (espera/bloqueio). Útil para medir carga absoluta do time e proporção de tempo produtivo vs ocioso.",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 87
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "gitlab-metrics"
+      },
+      "options": {
+        "orientation": "vertical",
+        "xTickLabelRotation": -45,
+        "tooltip": {
+          "mode": "multi"
+        },
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "sum"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "h"
+        }
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT\n  TO_CHAR(date_trunc('month', resolved_at), 'Mon/YYYY') AS \"Mês\",\n  ROUND(SUM(action_time_hours)::numeric,   1) AS \"Action Time  ·  Fazendo · In Progress · QA · QA Feature · QA Reprovado · Review · Pronto para Produção (h)\",\n  ROUND(SUM(awaiting_time_hours)::numeric, 1) AS \"Awaiting Time  ·  A Fazer · Backlog  (= Lead Time − Action Time) (h)\"\nFROM jira_issues\nWHERE\n  resolved_at BETWEEN $__timeFrom() AND $__timeTo()\n  AND action_time_hours IS NOT NULL\n  AND issue_type NOT IN ('Subtask', 'Sub-task', 'Subtarefa')\n  AND project_key ~ '${project:pipe}'\n  AND ('${assignee:pipe}' = '.*' OR assignee ~ '${assignee:pipe}')\n  AND ('${issue_type:pipe}' = '.*' OR issue_type ~ '${issue_type:pipe}')\n  AND (\n    '${outliers}' = 'incluir'\n    OR lead_time_hours IS NULL\n    OR lead_time_hours <= (\n      SELECT PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY lead_time_hours)\n      FROM jira_issues\n      WHERE resolved_at IS NOT NULL AND lead_time_hours IS NOT NULL\n        AND issue_type NOT IN ('Subtask', 'Sub-task', 'Subtarefa')\n        AND resolved_at BETWEEN $__timeFrom() AND $__timeTo()\n    )\n  )\nGROUP BY date_trunc('month', resolved_at)\nORDER BY date_trunc('month', resolved_at)",
+          "format": "table"
+        }
+      ]
+    },
+    {
+      "id": 161,
+      "title": "Cards com QA Reprovado por Mês",
+      "type": "barchart",
+      "description": "Quantidade de cards distintos que passaram pelo status 'QA Reprovado' em cada mês (baseado na data da transição). Um card que foi reprovado múltiplas vezes no mesmo mês conta apenas uma vez. Valores altos indicam problemas de qualidade na entrega para QA.",
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 95
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "gitlab-metrics"
+      },
+      "options": {
+        "orientation": "vertical",
+        "xTickLabelRotation": -45,
+        "tooltip": {
+          "mode": "multi"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "red",
+            "mode": "fixed"
+          },
+          "links": [
+            {
+              "title": "Ver lista de issues →",
+              "url": "/d/jira-issue-list/jira-lista-de-issues?var-resolved_filter=todos&var-jira_url=${jira_url}",
+              "targetBlank": true
+            }
+          ]
+        }
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT\n  TO_CHAR(date_trunc('month', jt.transitioned_at), 'Mon/YYYY') AS \"Mês\",\n  COUNT(DISTINCT jt.issue_key) AS \"Cards Reprovados\"\nFROM jira_issue_transitions jt\nJOIN jira_issues ji ON jt.issue_key = ji.issue_key\nWHERE\n  jt.to_status ILIKE '%QA Reprovado%'\n  AND jt.transitioned_at BETWEEN $__timeFrom() AND $__timeTo()\n  AND ji.issue_type NOT IN ('Subtask', 'Sub-task', 'Subtarefa')\n  AND ji.project_key ~ '${project:pipe}'\n  AND ('${assignee:pipe}' = '.*' OR ji.assignee ~ '${assignee:pipe}')\n  AND ('${issue_type:pipe}' = '.*' OR ji.issue_type ~ '${issue_type:pipe}')\nGROUP BY date_trunc('month', jt.transitioned_at)\nORDER BY date_trunc('month', jt.transitioned_at)",
+          "format": "table"
+        }
+      ]
+    },
+    {
+      "id": 162,
+      "title": "Cards Refinados vs Não Refinados por Mês",
+      "type": "barchart",
+      "description": "Comparativo mensal entre cards que foram refinados (possuem pelo menos uma subtask) e cards não refinados (sem subtasks). Considera apenas cards criados no período que não sejam subtasks/epics. Cards refinados indicam maior decomposição do trabalho antes ou durante a execução.",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 103
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "gitlab-metrics"
+      },
+      "options": {
+        "orientation": "vertical",
+        "xTickLabelRotation": -45,
+        "stacking": "normal",
+        "tooltip": {
+          "mode": "multi"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Refinados" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Não Refinados" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }]
+          }
+        ]
+      },
+      "targets": [
+        {
+          "rawSql": "WITH refined AS (\n  SELECT DISTINCT sub.parent_key\n  FROM jira_issues sub\n  WHERE sub.parent_key IS NOT NULL\n    AND sub.issue_type IN ('Subtarefa', 'Subtask', 'Sub-task')\n)\nSELECT\n  TO_CHAR(date_trunc('month', ji.created_at), 'Mon/YYYY') AS \"Mês\",\n  COUNT(*) FILTER (WHERE r.parent_key IS NOT NULL) AS \"Refinados\",\n  COUNT(*) FILTER (WHERE r.parent_key IS NULL) AS \"Não Refinados\"\nFROM jira_issues ji\nLEFT JOIN refined r ON ji.issue_key = r.parent_key\nWHERE\n  ji.created_at BETWEEN $__timeFrom() AND $__timeTo()\n  AND ji.issue_type NOT IN ('Subtarefa', 'Subtask', 'Sub-task', 'Epic')\n  AND ji.project_key ~ '${project:pipe}'\n  AND ('${assignee:pipe}' = '.*' OR ji.assignee ~ '${assignee:pipe}')\n  AND ('${issue_type:pipe}' = '.*' OR ji.issue_type ~ '${issue_type:pipe}')\nGROUP BY date_trunc('month', ji.created_at)\nORDER BY date_trunc('month', ji.created_at)",
+          "format": "table"
+        }
+      ]
+    },
+    {
+      "id": 130,
+      "type": "row",
+      "title": "Por Colaborador",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 65
+      },
+      "collapsed": false
+    },
+    {
+      "id": 131,
+      "title": "Métricas Completas por Colaborador",
+      "type": "table",
+      "gridPos": {
+        "h": 12,
+        "w": 24,
+        "x": 0,
+        "y": 66
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "gitlab-metrics"
+      },
+      "options": {
+        "sortBy": [
+          {
+            "displayName": "Cards Concluídos",
+            "desc": true
+          }
+        ],
+        "footer": {
+          "show": false
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "center"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Colaborador"
+            },
+            "properties": [
+              {
+                "id": "custom.align",
+                "value": "left"
+              },
+              {
+                "id": "custom.width",
+                "value": 180
+              },
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Ver lista de issues →",
+                    "url": "/d/jira-issue-list/jira-lista-de-issues?var-assignee_filter=${__data.fields.Colaborador}&var-resolved_filter=todos&var-jira_url=${jira_url}",
+                    "targetBlank": true
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": ".*Time.*|.*Lead.*|.*Cycle.*"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "h"
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 48
+                    },
+                    {
+                      "color": "red",
+                      "value": 168
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "custom.displayMode",
+                "value": "color-background-solid"
+              }
+            ]
+          }
+        ]
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT\n  COALESCE(assignee, '(sem responsável)') AS \"Colaborador\",\n  COUNT(*) AS \"Cards Criados\",\n  COUNT(*) FILTER (WHERE status_category = 'done') AS \"Cards Concluídos\",\n  COALESCE(SUM(story_points) FILTER (WHERE status_category = 'done'), 0)::int AS \"SP Entregues\",\n  ROUND(AVG(lead_time_hours)    FILTER (WHERE resolved_at IS NOT NULL)::numeric, 1) AS \"Lead Time Médio (h)\",\n  ROUND(AVG(cycle_time_hours)   FILTER (WHERE resolved_at IS NOT NULL)::numeric, 1) AS \"Cycle Time Médio (h)\",\n  ROUND(AVG(action_time_hours)  FILTER (WHERE resolved_at IS NOT NULL)::numeric, 1) AS \"Action Time Médio (h)\",\n  ROUND(AVG(awaiting_time_hours)FILTER (WHERE resolved_at IS NOT NULL)::numeric, 1) AS \"Awaiting Time Médio (h)\",\n  COUNT(*) FILTER (WHERE status_category = 'indeterminate') AS \"WIP\",\n  COUNT(*) FILTER (WHERE status_category = 'new') AS \"Não Iniciados\"\nFROM jira_issues\nWHERE\n  created_at BETWEEN $__timeFrom() AND $__timeTo()\n  AND issue_type NOT IN ('Subtask', 'Sub-task', 'Subtarefa')\n  AND project_key ~ '${project:pipe}'\n  AND ('${assignee:pipe}' = '.*' OR assignee ~ '${assignee:pipe}')\n  AND ('${issue_type:pipe}' = '.*' OR issue_type ~ '${issue_type:pipe}')\n  AND (\n    '${outliers}' = 'incluir'\n    OR lead_time_hours IS NULL\n    OR lead_time_hours <= (\n      SELECT PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY lead_time_hours)\n      FROM jira_issues\n      WHERE resolved_at IS NOT NULL AND lead_time_hours IS NOT NULL\n        AND issue_type NOT IN ('Subtask', 'Sub-task', 'Subtarefa')\n        AND resolved_at BETWEEN $__timeFrom() AND $__timeTo()\n    )\n  )\nGROUP BY assignee\nORDER BY \"Cards Concluídos\" DESC",
+          "format": "table"
+        }
+      ],
+      "description": "Tabela consolidada por responsável (assignee) para o período e filtros selecionados. Colunas: cards entregues, SP entregues, lead time médio, cycle time médio, action time médio e awaiting time médio (todos em horas). Action Time considera apenas status com categoria 'indeterminate' (configurável via JIRA_ACTIVE_CATEGORIES)."
+    },
+    {
+      "id": 140,
+      "type": "row",
+      "title": "Por Tipo de Card",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 78
+      },
+      "collapsed": false
+    },
+    {
+      "id": 141,
+      "title": "Cards Concluídos por Tipo",
+      "type": "piechart",
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 79
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "gitlab-metrics"
+      },
+      "options": {
+        "pieType": "donut",
+        "tooltip": {
+          "mode": "multi"
+        },
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "sum",
+            "percent"
+          ]
+        }
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT\n  COALESCE(issue_type, 'Outros') AS \"Tipo\",\n  COUNT(*) AS \"Cards\"\nFROM jira_issues\nWHERE\n  resolved_at BETWEEN $__timeFrom() AND $__timeTo()\n  AND issue_type NOT IN ('Subtask', 'Sub-task', 'Subtarefa')\n  AND project_key ~ '${project:pipe}'\n  AND ('${assignee:pipe}' = '.*' OR assignee ~ '${assignee:pipe}')\n  AND ('${issue_type:pipe}' = '.*' OR issue_type ~ '${issue_type:pipe}')\nGROUP BY issue_type\nORDER BY \"Cards\" DESC",
+          "format": "table"
+        }
+      ],
+      "description": "Distribuição proporcional de cards entregues por tipo (Story, Bug, Task, Epic) no período selecionado. Subtasks são excluídas. Proporção alta de Bugs pode indicar débito técnico ou instabilidade no produto.",
+      "fieldConfig": {
+        "defaults": {
+          "links": [
+            {
+              "title": "Ver lista de issues →",
+              "url": "/d/jira-issue-list/jira-lista-de-issues?var-issue_type_filter=${__series.name}&var-resolved_filter=resolvidos&var-jira_url=${jira_url}",
+              "targetBlank": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": 142,
+      "title": "Lead Time Médio por Tipo de Card (h)",
+      "type": "barchart",
+      "gridPos": {
+        "h": 8,
+        "w": 16,
+        "x": 8,
+        "y": 79
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "gitlab-metrics"
+      },
+      "options": {
+        "orientation": "horizontal",
+        "tooltip": {
+          "mode": "multi"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "h"
+        }
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT\n  COALESCE(issue_type, 'Outros') AS \"Tipo\",\n  ROUND(AVG(lead_time_hours)::numeric,   1) AS \"Lead Time Médio (h)\",\n  ROUND(AVG(cycle_time_hours)::numeric,  1) AS \"Cycle Time Médio (h)\",\n  ROUND(AVG(action_time_hours)::numeric, 1) AS \"Action Time Médio (h)\"\nFROM jira_issues\nWHERE\n  resolved_at BETWEEN $__timeFrom() AND $__timeTo()\n  AND lead_time_hours IS NOT NULL\n  AND issue_type NOT IN ('Subtask', 'Sub-task', 'Subtarefa')\n  AND project_key ~ '${project:pipe}'\n  AND ('${assignee:pipe}' = '.*' OR assignee ~ '${assignee:pipe}')\n  AND ('${issue_type:pipe}' = '.*' OR issue_type ~ '${issue_type:pipe}')\n  AND (\n    '${outliers}' = 'incluir'\n    OR lead_time_hours IS NULL\n    OR lead_time_hours <= (\n      SELECT PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY lead_time_hours)\n      FROM jira_issues\n      WHERE resolved_at IS NOT NULL AND lead_time_hours IS NOT NULL\n        AND issue_type NOT IN ('Subtask', 'Sub-task', 'Subtarefa')\n        AND resolved_at BETWEEN $__timeFrom() AND $__timeTo()\n    )\n  )\nGROUP BY issue_type\nORDER BY AVG(lead_time_hours) DESC",
+          "format": "table"
+        }
+      ],
+      "description": "Lead time médio agrupado por tipo de card. Bugs costumam ter lead time menor por urgência; Epics e Stories maiores têm lead time naturalmente mais alto pelo escopo. Compare com o cycle time para entender onde cada tipo passa mais tempo (espera vs execução)."
+    },
+    {
+      "id": 150,
+      "type": "row",
+      "title": "WIP: Work in Progress",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "collapsed": false
+    },
+    {
+      "id": 151,
+      "title": "Backlog",
+      "type": "stat",
+      "gridPos": {
+        "h": 8,
+        "w": 4,
+        "x": 0,
+        "y": 1
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "gitlab-metrics"
+      },
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": ["lastNotNull"],
+          "fields": ""
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 20
+              },
+              {
+                "color": "red",
+                "value": 50
+              }
+            ]
+          },
+          "mappings": [],
+          "links": [
+            {
+              "title": "Ver backlog →",
+              "url": "/d/jira-issue-list/jira-lista-de-issues?var-status_filter=Backlog&var-resolved_filter=abertos&var-jira_url=${jira_url}",
+              "targetBlank": true
+            }
+          ]
+        }
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT\n  COUNT(*) AS \"Backlog\"\nFROM jira_issues\nWHERE\n  status ILIKE '%backlog%'\n  AND status_category = 'new'\n  AND issue_type NOT IN ('Subtask', 'Sub-task', 'Subtarefa')\n  AND project_key ~ '${project:pipe}'\n  AND ('${assignee:pipe}' = '.*' OR assignee ~ '${assignee:pipe}')\n  AND ('${issue_type:pipe}' = '.*' OR issue_type ~ '${issue_type:pipe}')",
+          "format": "table"
+        }
+      ],
+      "description": "Total de cards com status 'Backlog'. Não inclui cards em 'A Fazer', em progresso nem concluídos."
+    },
+    {
+      "id": 155,
+      "title": "A Fazer",
+      "type": "stat",
+      "gridPos": {
+        "h": 8,
+        "w": 4,
+        "x": 4,
+        "y": 1
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "gitlab-metrics"
+      },
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": ["lastNotNull"],
+          "fields": ""
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 15
+              },
+              {
+                "color": "red",
+                "value": 40
+              }
+            ]
+          },
+          "mappings": [],
+          "links": [
+            {
+              "title": "Ver cards a fazer →",
+              "url": "/d/jira-issue-list/jira-lista-de-issues?var-status_filter=A%20Fazer&var-resolved_filter=abertos&var-jira_url=${jira_url}",
+              "targetBlank": true
+            }
+          ]
+        }
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT\n  COUNT(*) AS \"A Fazer\"\nFROM jira_issues\nWHERE\n  status_category = 'new'\n  AND status NOT ILIKE '%backlog%'\n  AND issue_type NOT IN ('Subtask', 'Sub-task', 'Subtarefa')\n  AND project_key ~ '${project:pipe}'\n  AND ('${assignee:pipe}' = '.*' OR assignee ~ '${assignee:pipe}')\n  AND ('${issue_type:pipe}' = '.*' OR issue_type ~ '${issue_type:pipe}')",
+          "format": "table"
+        }
+      ],
+      "description": "Total de cards com status_category = 'new' excluindo os que estão no Backlog. São cards priorizados e prontos para serem puxados pelo time."
+    },
+    {
+      "id": 154,
+      "title": "WIP Geral (Ativo)",
+      "type": "stat",
+      "gridPos": {
+        "h": 8,
+        "w": 4,
+        "x": 8,
+        "y": 1
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "gitlab-metrics"
+      },
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": ["lastNotNull"],
+          "fields": ""
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 30
+              },
+              {
+                "color": "red",
+                "value": 70
+              }
+            ]
+          },
+          "mappings": [],
+          "links": [
+            {
+              "title": "Ver WIP ativo →",
+              "url": "/d/jira-issue-list/jira-lista-de-issues?var-status_cat_filter=indeterminate&var-resolved_filter=abertos&var-jira_url=${jira_url}",
+              "targetBlank": true
+            }
+          ]
+        }
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT\n  COUNT(*) AS \"WIP Ativo\"\nFROM jira_issues\nWHERE\n  status_category = 'indeterminate'\n  AND issue_type NOT IN ('Subtask', 'Sub-task', 'Subtarefa')\n  AND project_key ~ '${project:pipe}'\n  AND ('${assignee:pipe}' = '.*' OR assignee ~ '${assignee:pipe}')\n  AND ('${issue_type:pipe}' = '.*' OR issue_type ~ '${issue_type:pipe}')",
+          "format": "table"
+        }
+      ],
+      "description": "Total geral de cards em trabalho ativo (status_category = 'indeterminate'). Exclui backlog ('new') e concluídos ('done')."
+    },
+    {
+      "id": 152,
+      "title": "WIP Ativo por Colaborador",
+      "type": "table",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 1
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "gitlab-metrics"
+      },
+      "options": {
+        "sortBy": [
+          {
+            "displayName": "WIP Ativo",
+            "desc": true
+          }
+        ],
+        "footer": {
+          "show": false
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "center"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Colaborador"
+            },
+            "properties": [
+              {
+                "id": "custom.align",
+                "value": "left"
+              },
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Ver lista de issues →",
+                    "url": "/d/jira-issue-list/jira-lista-de-issues?var-assignee_filter=${__data.fields.Colaborador}&var-status_cat_filter=indeterminate&var-resolved_filter=abertos&var-jira_url=${jira_url}",
+                    "targetBlank": true
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT\n  COALESCE(assignee, '(sem responsável)') AS \"Colaborador\",\n  COUNT(*) AS \"WIP Ativo\",\n  ROUND(AVG(EXTRACT(EPOCH FROM (NOW() - created_at)) / 3600.0)::numeric, 0) AS \"Idade Média (h)\"\nFROM jira_issues\nWHERE\n  status_category = 'indeterminate'\n  AND issue_type NOT IN ('Subtask', 'Sub-task', 'Subtarefa')\n  AND project_key ~ '${project:pipe}'\n  AND ('${assignee:pipe}' = '.*' OR assignee ~ '${assignee:pipe}')\n  AND ('${issue_type:pipe}' = '.*' OR issue_type ~ '${issue_type:pipe}')\nGROUP BY assignee\nORDER BY \"WIP Ativo\" DESC",
+          "format": "table"
+        }
+      ],
+      "description": "WIP atual por responsável considerando apenas cards em execução ativa (status_category = 'indeterminate'). Exclui backlog ('new') e concluídos ('done')."
+    }
+  ]
+}

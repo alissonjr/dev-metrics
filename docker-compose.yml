@@ -1,0 +1,96 @@
+services:
+  # ─────────────────────────────────────────────
+  # PostgreSQL — banco de dados das métricas
+  # ─────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: metrics-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-metrics}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-metrics}
+      POSTGRES_DB: ${POSTGRES_DB:-gitlab_metrics}
+    volumes:
+      - postgres-storage:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-metrics}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # ─────────────────────────────────────────────
+  # ETL GitLab — coleta GitLab API → PostgreSQL
+  # ─────────────────────────────────────────────
+  gitlab-etl:
+    build:
+      context: ./gitlab-etl
+      dockerfile: Dockerfile
+    container_name: metrics-gitlab-etl
+    restart: unless-stopped
+    environment:
+      GITLAB_URL: ${GITLAB_URL}
+      GITLAB_TOKEN: ${GITLAB_TOKEN}
+      GITLAB_GROUP_ID: ${GITLAB_GROUP_ID}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-metrics}:${POSTGRES_PASSWORD:-metrics}@postgres:5432/${POSTGRES_DB:-gitlab_metrics}
+      SYNC_INTERVAL_HOURS: ${SYNC_INTERVAL_HOURS:-6}
+      HISTORY_DAYS: ${HISTORY_DAYS:-365}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # ─────────────────────────────────────────────
+  # Grafana — dashboards de métricas
+  # Acesse: http://localhost:3000
+  # Login:  admin / admin  (troque na primeira vez)
+  # ─────────────────────────────────────────────
+  grafana:
+    image: grafana/grafana:12.1.0
+    container_name: metrics-grafana
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      # Passa as credenciais para o datasource provisionado
+      POSTGRES_USER: ${POSTGRES_USER:-metrics}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-metrics}
+      POSTGRES_DB: ${POSTGRES_DB:-gitlab_metrics}
+    volumes:
+      - grafana-storage:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # ─────────────────────────────────────────────
+  # ETL Jira — coleta Jira API → PostgreSQL
+  # ─────────────────────────────────────────────
+  jira-etl:
+    build:
+      context: ./jira-etl
+      dockerfile: Dockerfile
+    container_name: metrics-jira-etl
+    restart: unless-stopped
+    environment:
+      JIRA_URL: ${JIRA_URL}
+      JIRA_EMAIL: ${JIRA_EMAIL}
+      JIRA_TOKEN: ${JIRA_TOKEN}
+      JIRA_PROJECTS: ${JIRA_PROJECTS}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-metrics}:${POSTGRES_PASSWORD:-metrics}@postgres:5432/${POSTGRES_DB:-gitlab_metrics}
+      SYNC_INTERVAL_HOURS: ${JIRA_SYNC_INTERVAL_HOURS:-4}
+      HISTORY_DAYS: ${HISTORY_DAYS:-365}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      JIRA_STORY_POINTS_FIELD: ${JIRA_STORY_POINTS_FIELD:-story_points}
+      ACTIVE_CATEGORIES: ${JIRA_ACTIVE_CATEGORIES:-indeterminate}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres-storage:
+  grafana-storage:

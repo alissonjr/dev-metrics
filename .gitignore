@@ -1,0 +1,37 @@
+# Secrets / local config
+.env
+.env.local
+.env.*.local
+
+# Local Claude Code settings
+.claude/settings.local.json
+
+# Database dumps and ETL state
+db/dump.sql
+db/*.sql.gz
+gitlab_validation_report.json
+
+# Generated reports
+reports/*
+!reports/.gitkeep
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.venv/
+venv/
+
+# Node (caso futuramente seja adicionado)
+node_modules/
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*~
+
+# Pacotes / binários grandes
+*.deb

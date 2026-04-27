@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    name: Validate configs and dashboards
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate dashboard JSON files
+        run: |
+          set -e
+          fail=0
+          for f in $(find grafana/dashboards -name '*.json'); do
+            if ! python -m json.tool "$f" > /dev/null; then
+              echo "::error file=$f::JSON inválido"
+              fail=1
+            fi
+          done
+          exit $fail
+
+      - name: Validate docker-compose.yml
+        run: docker compose -f docker-compose.yml config --quiet
+
+      - name: Validate provisioning YAML
+        run: |
+          python - <<'PY'
+          import sys, pathlib, yaml
+          fails = 0
+          for p in pathlib.Path("grafana/provisioning").rglob("*.y*ml"):
+              try:
+                  yaml.safe_load(p.read_text())
+              except yaml.YAMLError as e:
+                  print(f"::error file={p}::YAML inválido: {e}")
+                  fails += 1
+          sys.exit(fails)
+          PY
+
+  lint-python:
+    name: Lint Python (ruff)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install ruff
+      - run: ruff check gitlab-etl jira-etl validate_gitlab.py
+        continue-on-error: true
