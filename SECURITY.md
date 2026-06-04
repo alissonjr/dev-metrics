@@ -3,7 +3,7 @@
 ## Versões suportadas
 
 Apenas a branch `main` recebe correções de segurança. O projeto não emite
-releases versionadas — sempre rode a partir do último commit estável.
+releases versionadas - sempre rode a partir do último commit estável.
 
 ## Reportando uma vulnerabilidade
 
@@ -25,15 +25,15 @@ autor da maioria dos commits recentes).
 - Crédito público no anúncio da correção, se você desejar
 
 Por se tratar de um projeto self-hosted que processa dados internos da sua
-organização, o impacto de uma falha geralmente é local — mas tokens
+organização, o impacto de uma falha geralmente é local - mas tokens
 expostos em logs, dumps ou queries SQL injetadas no Grafana são exemplos
 de problemas que merecem report privado.
 
 ## Boas práticas para quem usa o projeto
 
-- **Nunca commite o `.env`** — o `.gitignore` já bloqueia, mas confira
+- **Nunca commite o `.env`** - o `.gitignore` já bloqueia, mas confira
 - **Rotacione tokens** GitLab/Jira após qualquer suspeita de vazamento
 - **Não exponha o Grafana publicamente** sem TLS e autenticação reforçada;
   o setup padrão (porta 3000, admin/admin) é só para uso local
-- **Não publique o `db/dump.sql`** — ele contém dados de issues, MRs e
+- **Não publique o `db/dump.sql`** - ele contém dados de issues, MRs e
   commits que podem ser sensíveis. O `.gitignore` já bloqueia o arquivo.

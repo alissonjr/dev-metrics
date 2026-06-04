@@ -6,17 +6,17 @@ inglês também são bem-vindos.
 
 ## Formas de contribuir
 
-- **Reportar bugs** — abra uma [issue](../../issues/new/choose) usando o
+- **Reportar bugs** - abra uma [issue](../../issues/new/choose) usando o
   template de bug e inclua passos para reproduzir.
-- **Sugerir melhorias** — abra uma issue de feature descrevendo o problema que
+- **Sugerir melhorias** - abra uma issue de feature descrevendo o problema que
   motiva a mudança, não só a solução desejada.
-- **Adicionar dashboards** — basta um JSON novo em
+- **Adicionar dashboards** - basta um JSON novo em
   `grafana/dashboards/Engineering/` ou `grafana/dashboards/Operations/`. Eles
   são provisionados automaticamente.
-- **Estender os coletores** — adicione campos/tabelas em
+- **Estender os coletores** - adicione campos/tabelas em
   `gitlab-etl/` ou `jira-etl/`. Lembre-se de atualizar o `schema.sql`
   correspondente.
-- **Melhorar a documentação** — `docs/*.md` descrevem cada painel; correções e
+- **Melhorar a documentação** - `docs/*.md` descrevem cada painel; correções e
   exemplos extras ajudam muito.
 
 ## Setup local
@@ -69,7 +69,7 @@ Confirme também que:
 
 ## Padrão de PR
 
-- Um PR por mudança lógica — evite misturar refactor com nova feature
+- Um PR por mudança lógica - evite misturar refactor com nova feature
 - Descreva o **porquê** da mudança, não só o **o quê** (o diff já mostra o quê)
 - Atualize a documentação relevante em `docs/` ou no `README.md` quando o
   comportamento muda

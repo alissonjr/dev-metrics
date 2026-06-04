@@ -2,7 +2,7 @@
 
 **UID Grafana:** `jira-kanban-metrics`  
 **Acesso:** http://localhost:3000/d/jira-kanban-metrics  
-**Fonte de dados:** PostgreSQL — tabelas `jira_issues`, `jira_issue_transitions`, `jira_boards`
+**Fonte de dados:** PostgreSQL - tabelas `jira_issues`, `jira_issue_transitions`, `jira_boards`
 
 Este dashboard apresenta métricas de fluxo Kanban coletadas da API do Jira. Os dados são
 coletados pelo serviço `jira-etl` (container `metrics-jira-etl`) e armazenados no banco
@@ -21,8 +21,8 @@ O campo `status_category` classifica cada status em três categorias:
 
 | Categoria       | Significado                     | Exemplos de status               |
 |-----------------|---------------------------------|----------------------------------|
-| `new`           | Aguardando — na fila            | **Backlog**, **A Fazer**         |
-| `indeterminate` | Em andamento — time trabalhando | Fazendo, Review, QA, In Progress |
+| `new`           | Aguardando - na fila            | **Backlog**, **A Fazer**         |
+| `indeterminate` | Em andamento - time trabalhando | Fazendo, Review, QA, In Progress |
 | `done`          | Concluído                       | Finalizado, Done                 |
 
 > **Atenção:** Backlog e A Fazer compartilham a mesma `status_category = 'new'`, mas têm
@@ -34,7 +34,7 @@ A categoria que conta como **Action Time** é configurável via `JIRA_ACTIVE_CAT
 
 ---
 
-## Seção: Throughput — Cards Entregues
+## Seção: Throughput - Cards Entregues
 
 ### Cards Concluídos por Semana
 
@@ -78,7 +78,7 @@ Plota duas séries:
 - **Criados:** cards com `created_at` na semana (entrada na fila)
 - **Concluídos:** cards com `resolved_at` na semana (saída)
 
-**Interpretação:** Quando "Criados" supera "Concluídos" de forma consistente, o backlog cresce —
+**Interpretação:** Quando "Criados" supera "Concluídos" de forma consistente, o backlog cresce -
 sinal de que a demanda supera a capacidade do time.
 
 ---
@@ -97,7 +97,7 @@ sinal de que a demanda supera a capacidade do time.
 
 Média do lead time dos cards resolvidos na semana.
 
-**Interpretação:** Reflete a experiência do cliente — quanto tempo um pedido demora desde que é
+**Interpretação:** Reflete a experiência do cliente - quanto tempo um pedido demora desde que é
 registrado até ser entregue. Inclui todo o tempo de espera.
 
 ---
@@ -144,7 +144,7 @@ def compute_time_metrics(transitions, created_at, resolved_at):
 Barchart horizontal com média de horas de action e awaiting por responsável.
 
 **Interpretação:** Razão alta de Awaiting/Action indica gargalos fora do controle do
-desenvolvedor — cards esperando em filas de review, QA ou aguardando decisões externas.
+desenvolvedor - cards esperando em filas de review, QA ou aguardando decisões externas.
 
 ---
 
@@ -154,7 +154,7 @@ Tempo médio (em horas) que os cards resolvidos passaram em cada coluna/status d
 verdes representam colunas de ação (`indeterminate`) e barras amarelas representam colunas de
 espera (`new`, `done`).
 
-**Interpretação:** Colunas de espera com tempo alto indicam gargalos no fluxo — filas de review,
+**Interpretação:** Colunas de espera com tempo alto indicam gargalos no fluxo - filas de review,
 QA ou aguardando decisões externas. Colunas de ação com tempo alto podem indicar complexidade ou
 sobrecarga do responsável.
 
@@ -198,7 +198,7 @@ têm lead time naturalmente maior. Comparar com cycle time revela onde cada tipo
 
 ---
 
-## Seção: WIP — Work in Progress
+## Seção: WIP - Work in Progress
 
 ### Backlog
 

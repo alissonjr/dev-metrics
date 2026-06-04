@@ -117,7 +117,7 @@ def _get_safe(url: str, params: dict = {}) -> Optional[any]:
     try:
         return _get(url, params)
     except JiraAuthError:
-        log.warning("Sem permissão em %s (401/403) — ignorando.", url)
+        log.warning("Sem permissão em %s (401/403) - ignorando.", url)
         return None
     except Exception as e:
         log.warning("Erro ao acessar %s: %s", url, e)
@@ -131,7 +131,7 @@ def validate_auth() -> None:
     """
     try:
         me = _get(f"{JIRA_URL}/rest/api/3/myself")
-        log.info("Autenticação OK — usuário: %s <%s>",
+        log.info("Autenticação OK - usuário: %s <%s>",
                  me.get("displayName", "?"), me.get("emailAddress", "?"))
     except JiraAuthError:
         log.error(
@@ -169,9 +169,9 @@ def paginate_search(jql: str, fields: List[str]) -> Generator[dict, None, None]:
             )
             if resp.status_code == 429:
                 retry_after = int(resp.headers.get("Retry-After", 60))
-                log.warning("Jira rate limit (429) — aguardando %ds.", retry_after)
+                log.warning("Jira rate limit (429) - aguardando %ds.", retry_after)
                 if _db_logger:
-                    _db_logger.warning("rate_limit", f"Jira 429 — aguardando {retry_after}s")
+                    _db_logger.warning("rate_limit", f"Jira 429 - aguardando {retry_after}s")
                 time.sleep(retry_after + 1)
                 continue
             if resp.status_code in (401, 403):
@@ -270,7 +270,7 @@ def build_status_map() -> Dict[str, str]:
         api_count = len(data)
     else:
         api_count = 0
-        log.warning("API de status retornou formato inesperado (%s) — usando somente fallback.",
+        log.warning("API de status retornou formato inesperado (%s) - usando somente fallback.",
                     type(data).__name__)
 
     log.info("Status map: %d entradas (%d da API + fallback embutido).",
@@ -367,10 +367,10 @@ def parse_transitions(histories: List[dict], status_map: Dict[str, str]) -> List
             for sname in (from_name, to_name):
                 if sname and sname not in status_map and sname not in _unknown_statuses:
                     _unknown_statuses.add(sname)
-                    log.warning("Status desconhecido no mapa: '%s' — usando categoria 'new' como fallback.", sname)
+                    log.warning("Status desconhecido no mapa: '%s' - usando categoria 'new' como fallback.", sname)
                     if _db_logger:
                         _db_logger.warning("unknown_status",
-                                           f"Status '{sname}' não encontrado no mapa — fallback para 'new'",
+                                           f"Status '{sname}' não encontrado no mapa - fallback para 'new'",
                                            details={"status_name": sname})
 
             transitions.append({
@@ -772,8 +772,8 @@ def run_sync() -> None:
             new_since = (datetime.now(timezone.utc) - timedelta(minutes=5)).strftime("%Y-%m-%d")
             set_sync_since(conn, new_since)
         else:
-            log.warning("Nenhum projeto coletado com sucesso — cursor de sync mantido em %s.", since)
-            _db_logger.warning("sync_no_progress", "Nenhum projeto coletado — cursor mantido")
+            log.warning("Nenhum projeto coletado com sucesso - cursor de sync mantido em %s.", since)
+            _db_logger.warning("sync_no_progress", "Nenhum projeto coletado - cursor mantido")
 
         elapsed = time.time() - start
         status  = "success" if success == len(JIRA_PROJECTS) else ("partial" if success > 0 else "failed")
@@ -784,7 +784,7 @@ def run_sync() -> None:
             "issues_synced":   total,
             "unknown_statuses": list(_unknown_statuses),
         })
-        log.info("═══ Sync concluído em %.0fs — %d issues processados ════", elapsed, total)
+        log.info("═══ Sync concluído em %.0fs - %d issues processados ════", elapsed, total)
 
     except Exception as e:
         log.error("Erro crítico no sync: %s", e)
@@ -804,14 +804,14 @@ def validate_env() -> bool:
     DATABASE_URL faltar.
     """
     if not os.environ.get("DATABASE_URL"):
-        log.error("DATABASE_URL ausente — verifique docker-compose.yml.")
+        log.error("DATABASE_URL ausente - verifique docker-compose.yml.")
         sys.exit(1)
 
     user_vars = ["JIRA_URL", "JIRA_EMAIL", "JIRA_TOKEN", "JIRA_PROJECTS"]
     set_vars = [v for v in user_vars if os.environ.get(v)]
 
     if not set_vars:
-        return False  # totalmente sem config — coletor desativado
+        return False  # totalmente sem config - coletor desativado
 
     missing = [v for v in user_vars if not os.environ.get(v)]
     if missing:

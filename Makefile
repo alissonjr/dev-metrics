@@ -5,7 +5,7 @@
 # Exibe todos os comandos disponiveis
 help:
 	@echo ""
-	@echo "Engineering Metrics — comandos disponiveis"
+	@echo "Engineering Metrics - comandos disponiveis"
 	@echo "--------------------------------------------"
 	@echo "  make up              Sobe todos os servicos (postgres, grafana, gitlab-etl, jira-etl)"
 	@echo "  make down            Para todos os servicos"

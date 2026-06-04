@@ -11,8 +11,8 @@ Jira API    -->  jira-etl   (Python)  -->  (mesmo DB)  <--  Grafana
 
 Quatro serviços Docker:
 - **`metrics-postgres`**: PostgreSQL 16 compartilhado (`gitlab_metrics`)
-- **`metrics-gitlab-etl`**: Coleta da GitLab REST API — sync a cada 6h
-- **`metrics-jira-etl`**: Coleta da Jira REST API — sync a cada 4h
+- **`metrics-gitlab-etl`**: Coleta da GitLab REST API - sync a cada 6h
+- **`metrics-jira-etl`**: Coleta da Jira REST API - sync a cada 4h
 - **`metrics-grafana`**: Grafana 12.1.0 com dashboards auto-provisionados
 
 ## Stack

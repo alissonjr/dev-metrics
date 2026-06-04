@@ -222,7 +222,7 @@
           "format": "table"
         }
       ],
-      "description": "Quantidade total de cards do tipo Bug vinculados à sprint (ativos), independente do status atual. Indica o esforço investido em correção de defeitos dentro da sprint. A query também expõe a coluna \"Concluídos\" (bugs com status_category = 'done') — altere 'Fields' na reduceOptions para exibir outro recorte."
+      "description": "Quantidade total de cards do tipo Bug vinculados à sprint (ativos), independente do status atual. Indica o esforço investido em correção de defeitos dentro da sprint. A query também expõe a coluna \"Concluídos\" (bugs com status_category = 'done') - altere 'Fields' na reduceOptions para exibir outro recorte."
     },
     {
       "id": 202,

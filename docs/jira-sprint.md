@@ -2,7 +2,7 @@
 
 **UID Grafana:** `jira-sprint-dashboard`  
 **Acesso:** http://localhost:3000/d/jira-sprint-dashboard  
-**Fonte de dados:** PostgreSQL — tabelas `jira_sprints`, `jira_sprint_issues`, `jira_issues`
+**Fonte de dados:** PostgreSQL - tabelas `jira_sprints`, `jira_sprint_issues`, `jira_issues`
 
 Este dashboard apresenta métricas específicas de sprint: visão geral, burndown, distribuição
 dos cards por status/responsável e histórico de velocidade.
@@ -92,11 +92,11 @@ planejamento de capacidade ou escopo que cresce durante a sprint.
 
 ## Seção: Burndown
 
-Os gráficos de burndown são calculados inteiramente via SQL usando `generate_series` — sem
+Os gráficos de burndown são calculados inteiramente via SQL usando `generate_series` - sem
 necessidade de tabela de snapshots diários. A lógica gera uma linha por dia da sprint e conta
 quantos cards ainda não tinham sido resolvidos até aquela data.
 
-### Burndown — Cards Restantes
+### Burndown - Cards Restantes
 
 ```sql
 WITH sp AS (
@@ -126,7 +126,7 @@ ORDER BY d.day
 
 ---
 
-### Burndown — Story Points Restantes
+### Burndown - Story Points Restantes
 
 Mesma lógica, substituindo contagem de cards por soma de `story_points`.
 
@@ -135,7 +135,7 @@ Mesma lógica, substituindo contagem de cards por soma de `story_points`.
 
 ---
 
-## Seção: Sprint — Cards por Coluna
+## Seção: Sprint - Cards por Coluna
 
 ### Qtd de Cards por Status do Kanban
 
@@ -183,12 +183,12 @@ acumulado que está desviando capacidade do desenvolvimento de novas funcionalid
 
 SP distribuídos por responsável, separados por categoria de status.
 
-**Interpretação:** Mostra contribuição em termos de esforço estimado — diferente da contagem
+**Interpretação:** Mostra contribuição em termos de esforço estimado - diferente da contagem
 de cards, considera o tamanho relativo de cada entrega.
 
 ---
 
-## Seção: Sprint — Lista Completa
+## Seção: Sprint - Lista Completa
 
 ### Cards da Sprint
 
