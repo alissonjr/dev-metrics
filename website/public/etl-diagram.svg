@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 360" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" role="img" aria-label="Pipeline ETL do dev-metrics: GitLab e Jira passam pelo coletor Python (extract, transform, load) até o PostgreSQL e o Grafana">
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#34d399"/>
+    </marker>
+  </defs>
+
+  <rect x="1" y="1" width="918" height="358" rx="14" fill="#09090b" stroke="#27272a"/>
+
+  <text x="32" y="42" fill="#f4f4f5" font-size="20" font-weight="700" letter-spacing="-0.01em">Pipeline ETL</text>
+  <text x="32" y="64" fill="#71717a" font-size="12" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">extract &#183; transform &#183; load &#8594; PostgreSQL</text>
+
+  <!-- Sources -->
+  <g font-family="ui-monospace, SFMono-Regular, Menlo, monospace">
+    <rect x="32" y="120" width="124" height="58" rx="8" fill="#18181b" stroke="#27272a"/>
+    <rect x="32" y="120" width="4" height="58" rx="2" fill="#f59e0b"/>
+    <text x="50" y="146" fill="#f4f4f5" font-size="13" font-weight="600">GitLab</text>
+    <text x="50" y="164" fill="#a1a1aa" font-size="11">REST API</text>
+
+    <rect x="32" y="208" width="124" height="58" rx="8" fill="#18181b" stroke="#27272a"/>
+    <rect x="32" y="208" width="4" height="58" rx="2" fill="#60a5fa"/>
+    <text x="50" y="234" fill="#f4f4f5" font-size="13" font-weight="600">Jira</text>
+    <text x="50" y="252" fill="#a1a1aa" font-size="11">REST API</text>
+  </g>
+
+  <!-- Collector container -->
+  <rect x="196" y="96" width="466" height="200" rx="10" fill="#0d0d0f" stroke="#27272a"/>
+  <text x="216" y="120" fill="#a1a1aa" font-size="12" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">coletor Python &#183; gitlab-etl &#183; jira-etl</text>
+
+  <!-- Stage cards -->
+  <g font-family="ui-monospace, SFMono-Regular, Menlo, monospace">
+    <!-- Extract -->
+    <rect x="208" y="140" width="132" height="138" rx="8" fill="#18181b" stroke="#27272a"/>
+    <text x="224" y="166" fill="#34d399" font-size="12" font-weight="700">1 &#183; EXTRACT</text>
+    <text x="224" y="192" fill="#a1a1aa" font-size="11">requests &#8594; API</text>
+    <text x="224" y="210" fill="#a1a1aa" font-size="11">paginação</text>
+    <text x="224" y="240" fill="#71717a" font-size="11">incremental via</text>
+    <text x="224" y="258" fill="#71717a" font-size="11">sync_state</text>
+
+    <!-- Transform -->
+    <rect x="364" y="140" width="132" height="138" rx="8" fill="#18181b" stroke="#27272a"/>
+    <text x="380" y="166" fill="#34d399" font-size="12" font-weight="700">2 &#183; TRANSFORM</text>
+    <text x="380" y="192" fill="#a1a1aa" font-size="11">normaliza JSON</text>
+    <text x="380" y="210" fill="#a1a1aa" font-size="11">deriva métricas</text>
+    <text x="380" y="240" fill="#71717a" font-size="11">cycle / lead</text>
+    <text x="380" y="258" fill="#71717a" font-size="11">action / awaiting</text>
+
+    <!-- Load -->
+    <rect x="520" y="140" width="132" height="138" rx="8" fill="#18181b" stroke="#27272a"/>
+    <text x="536" y="166" fill="#34d399" font-size="12" font-weight="700">3 &#183; LOAD</text>
+    <text x="536" y="192" fill="#a1a1aa" font-size="11">psycopg2</text>
+    <text x="536" y="210" fill="#a1a1aa" font-size="11">UPSERT idempot.</text>
+    <text x="536" y="240" fill="#71717a" font-size="11">log em</text>
+    <text x="536" y="258" fill="#71717a" font-size="11">integration_logs</text>
+  </g>
+
+  <!-- PostgreSQL -->
+  <g font-family="ui-monospace, SFMono-Regular, Menlo, monospace">
+    <rect x="704" y="116" width="180" height="74" rx="8" fill="#18181b" stroke="#34d399"/>
+    <text x="724" y="146" fill="#f4f4f5" font-size="13" font-weight="600">PostgreSQL 16</text>
+    <text x="724" y="166" fill="#a1a1aa" font-size="11">metrics-postgres</text>
+    <text x="724" y="182" fill="#71717a" font-size="11">db: gitlab_metrics</text>
+  </g>
+
+  <!-- Grafana -->
+  <g font-family="ui-monospace, SFMono-Regular, Menlo, monospace">
+    <rect x="704" y="226" width="180" height="68" rx="8" fill="#18181b" stroke="#27272a"/>
+    <text x="724" y="254" fill="#f4f4f5" font-size="13" font-weight="600">Grafana 12</text>
+    <text x="724" y="274" fill="#a1a1aa" font-size="11">dashboards :3000</text>
+  </g>
+
+  <!-- Arrows -->
+  <g fill="none" stroke="#34d399" stroke-width="1.6">
+    <path d="M156 149 L206 175" marker-end="url(#ah)"/>
+    <path d="M156 237 L206 213" marker-end="url(#ah)"/>
+    <path d="M340 209 L362 209" marker-end="url(#ah)"/>
+    <path d="M496 209 L518 209" marker-end="url(#ah)"/>
+    <path d="M652 209 L700 165" marker-end="url(#ah)"/>
+    <path d="M794 190 L794 224" marker-end="url(#ah)"/>
+  </g>
+  <text x="804" y="214" fill="#71717a" font-size="10" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">SQL</text>
+</svg>
