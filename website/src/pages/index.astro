@@ -102,19 +102,6 @@ make up               <span class="muted"># http://localhost:3000</span></code><
       </section>
 
       <section class="block">
-        <p class="kicker">DASHBOARDS</p>
-        {/*
-          Para exibir um screenshot real do Grafana:
-          1. salve a imagem em website/public/screenshots/ (ex.: dashboard.png)
-          2. substitua o placeholder abaixo por:
-             <img class="shot" src={`${base}/screenshots/dashboard.png`} alt="Dashboard de métricas no Grafana" loading="lazy" />
-        */}
-        <div class="shot shot-placeholder">
-          <span>Seu screenshot do Grafana aqui<br /><code>website/public/screenshots/</code></span>
-        </div>
-      </section>
-
-      <section class="block">
         <p class="kicker">ARQUITETURA</p>
         <img
           class="diagram"
@@ -294,27 +281,6 @@ make up               <span class="muted"># http://localhost:3000</span></code><
       .diagram-cta a { color: var(--accent); }
       .diagram-cta a:hover { color: var(--accent-hi); }
       .diagram-cta span { color: var(--dim); }
-
-      .shot {
-        display: block;
-        width: 100%;
-        height: auto;
-        border: 1px solid var(--line-2);
-        border-radius: 0.375rem;
-      }
-      .shot-placeholder {
-        aspect-ratio: 16 / 9;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        text-align: center;
-        background: repeating-linear-gradient(45deg, #0d0d0f, #0d0d0f 10px, #101013 10px, #101013 20px);
-        border-style: dashed;
-        color: var(--muted);
-        font-size: 0.875rem;
-        line-height: 1.8;
-      }
-      .shot-placeholder code { font-size: 0.75rem; color: var(--dim); }
 
       .stack { margin-top: 6rem; }
       .logos {
