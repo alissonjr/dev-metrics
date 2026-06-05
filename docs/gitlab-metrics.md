@@ -2,7 +2,7 @@
 
 **UID Grafana:** `gitlab-eng-metrics`  
 **Acesso:** http://localhost:3000/d/gitlab-eng-metrics  
-**Fonte de dados:** PostgreSQL — tabelas `merge_requests`, `commits`, `notes`, `pipelines`
+**Fonte de dados:** PostgreSQL - tabelas `merge_requests`, `commits`, `notes`, `pipelines`
 
 Este dashboard consolida métricas de engenharia coletadas da API do GitLab. Os dados são
 coletados pelo serviço `etl` (container `metrics-etl`) e armazenados no banco `gitlab_metrics`.
@@ -23,7 +23,7 @@ WHERE created_at BETWEEN $__timeFrom() AND $__timeTo()
 GROUP BY 1 ORDER BY 1
 ```
 
-**Interpretação:** Indica a cadência de desenvolvimento — quantos trabalhos novos foram submetidos
+**Interpretação:** Indica a cadência de desenvolvimento - quantos trabalhos novos foram submetidos
 para revisão a cada mês. Picos podem refletir entregas próximas a deadlines.
 
 ---
@@ -42,11 +42,11 @@ GROUP BY 1 ORDER BY 1
 ```
 
 **Interpretação:** Quando consistentemente abaixo de "MRs Criados", indica acúmulo de revisões
-pendentes — sinal de gargalo no processo de code review.
+pendentes - sinal de gargalo no processo de code review.
 
 ---
 
-### MRs por Autor — Volume e Ciclo
+### MRs por Autor - Volume e Ciclo
 
 Tabela consolidada por autor com volume de MRs e tempo médio de ciclo (abertura até merge).
 
@@ -70,7 +70,7 @@ externas que bloqueiam o merge.
 
 ## Seção: Tamanho de MRs
 
-### MR Size — Arquivos e Linhas por Autor
+### MR Size - Arquivos e Linhas por Autor
 
 Média de arquivos alterados e linhas modificadas (additions + deletions) por MR, por autor.
 
@@ -92,7 +92,7 @@ indicar feriados, bloqueios ou períodos de planejamento de sprint.
 
 ### Linhas Modificadas por Mês
 
-Soma de linhas adicionadas e deletadas por mês — proxy de volume de mudanças no código.
+Soma de linhas adicionadas e deletadas por mês - proxy de volume de mudanças no código.
 
 **Interpretação:** Não mede qualidade. Refatorações de limpeza podem ter alto volume sem entregar
 funcionalidade nova. Analise em conjunto com throughput de MRs.
@@ -104,7 +104,7 @@ funcionalidade nova. Analise em conjunto com throughput de MRs.
 Por autor: total de commits, linhas adicionadas, deletadas e saldo líquido.
 
 **Interpretação:** Saldo negativo (mais deleções que adições) geralmente indica refatoração ou
-limpeza de código — pode ser positivo dependendo do contexto.
+limpeza de código - pode ser positivo dependendo do contexto.
 
 ---
 

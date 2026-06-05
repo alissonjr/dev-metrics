@@ -1,6 +1,6 @@
 <!--
 Obrigado pela contribuição! Antes de enviar, leia CONTRIBUTING.md.
-Preencha as seções abaixo — pode remover o que não se aplica.
+Preencha as seções abaixo - pode remover o que não se aplica.
 -->
 
 ## O que muda

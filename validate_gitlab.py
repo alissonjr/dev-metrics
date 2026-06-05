@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Script de Validação GitLab — compara contagens da API com o banco de dados.
+Script de Validação GitLab - compara contagens da API com o banco de dados.
 
 Uso:
     GITLAB_URL=https://seu-gitlab.com \
@@ -166,7 +166,7 @@ def run_report(projects: List[dict], since: str) -> None:
     line = "─" * 90
 
     print(f"\n{sep}")
-    print(f"  RELATÓRIO DE VALIDAÇÃO — GitLab API vs Banco de Dados")
+    print(f"  RELATÓRIO DE VALIDAÇÃO - GitLab API vs Banco de Dados")
     print(f"  Período : últimos {DAYS_BACK} dias  (desde {since_dt.date()})")
     print(f"  Grupo   : {GROUP_ID}  |  Projetos: {len(projects)}")
     has_db = bool(DATABASE_URL)
@@ -228,10 +228,10 @@ def run_report(projects: List[dict], since: str) -> None:
                 "additions":     p_add,
                 "deletions":     p_del,
                 "pipelines":     len(pipelines),
-                "db_mrs":        db.get("db_mrs", "—"),
-                "db_merged":     db.get("db_merged", "—"),
-                "db_commits":    db.get("db_commits", "—"),
-                "db_pipelines":  db.get("db_pipelines", "—"),
+                "db_mrs":        db.get("db_mrs", "-"),
+                "db_merged":     db.get("db_merged", "-"),
+                "db_commits":    db.get("db_commits", "-"),
+                "db_pipelines":  db.get("db_pipelines", "-"),
             })
 
             totals["mrs"]       += len(mrs)
@@ -245,7 +245,7 @@ def run_report(projects: List[dict], since: str) -> None:
                   f"Commits: {len(commits):>5}  Pipelines: {len(pipelines):>4}     ")
 
         except Exception as e:
-            print(f"      [ERRO] {e} — projeto ignorado, continuando...")
+            print(f"      [ERRO] {e} - projeto ignorado, continuando...")
             project_rows.append({"project": name, "project_id": pid,
                                   "mrs": "ERRO", "merged": "-", "open": "-",
                                   "closed": "-", "commits": "-",
@@ -293,7 +293,7 @@ def run_report(projects: List[dict], since: str) -> None:
         print(f"  {author:<40} {count:>6}")
 
     print(f"\n{line}")
-    print(f"  COMMITS POR AUTOR — com linhas modificadas (top 30)")
+    print(f"  COMMITS POR AUTOR - com linhas modificadas (top 30)")
     print(f"{line}")
     print(f"  {'Autor':<40} {'Commits':>8} {'Linhas':>8}")
     for author, count in sorted(author_commits.items(), key=lambda x: -x[1])[:30]:

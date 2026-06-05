@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#09090b"/>
+  <rect x="0" y="0" width="1200" height="6" fill="#34d399"/>
+  <g transform="translate(90,74)">
+    <rect width="44" height="44" rx="9" fill="#0f0f12" stroke="#27272a"/>
+    <path d="M10 31 L19 14 L27 26 L35 17" stroke="#34d399" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    <text x="60" y="31" font-family="JetBrains Mono" font-weight="600" font-size="28" fill="#f4f4f5">dev-metrics</text>
+  </g>
+  <text x="92" y="268" font-family="JetBrains Mono" font-weight="600" font-size="22" letter-spacing="3" fill="#34d399">OPEN SOURCE · MIT</text>
+  <text x="90" y="352" font-family="Inter" font-weight="800" font-size="78" fill="#f4f4f5">Métricas de engenharia,</text>
+  <text x="90" y="442" font-family="Inter" font-weight="800" font-size="78" fill="#34d399">self-hosted.</text>
+  <text x="92" y="514" font-family="Inter" font-weight="400" font-size="30" fill="#a1a1aa">Coleta GitLab e Jira, visualiza em Grafana.</text>
+  <text x="92" y="574" font-family="JetBrains Mono" font-weight="600" font-size="20" fill="#71717a">Python &#183; PostgreSQL &#183; Grafana &#183; Docker Compose</text>
+</svg>

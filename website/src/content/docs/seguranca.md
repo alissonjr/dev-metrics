@@ -1,4 +1,7 @@
-# Política de Segurança
+---
+title: Segurança
+description: Política de relato de vulnerabilidades e boas práticas de operação.
+---
 
 ## Versões suportadas
 
@@ -9,7 +12,7 @@ releases versionadas - sempre rode a partir do último commit estável.
 
 Se você encontrou uma falha de segurança, **não abra uma issue pública**.
 
-Por favor, use o canal privado do GitHub:
+Use o canal privado do GitHub:
 
 1. Acesse a aba **Security** do repositório
 2. Clique em **Report a vulnerability**
@@ -25,9 +28,9 @@ autor da maioria dos commits recentes).
 - Crédito público no anúncio da correção, se você desejar
 
 Por se tratar de um projeto self-hosted que processa dados internos da sua
-organização, o impacto de uma falha geralmente é local - mas tokens
-expostos em logs, dumps ou queries SQL injetadas no Grafana são exemplos
-de problemas que merecem report privado.
+organização, o impacto de uma falha geralmente é local. Mas tokens expostos
+em logs, dumps ou queries SQL injetadas no Grafana são exemplos de problemas
+que merecem report privado.
 
 ## Boas práticas para quem usa o projeto
 
@@ -35,5 +38,5 @@ de problemas que merecem report privado.
 - **Rotacione tokens** GitLab/Jira após qualquer suspeita de vazamento
 - **Não exponha o Grafana publicamente** sem TLS e autenticação reforçada;
   o setup padrão (porta 3000, admin/admin) é só para uso local
-- **Não publique o `db/dump.sql`** - ele contém dados de issues, MRs e
-  commits que podem ser sensíveis. O `.gitignore` já bloqueia o arquivo.
+- **Não publique o `db/dump.sql`** - ele contém dados de issues, MRs e commits
+  que podem ser sensíveis. O `.gitignore` já bloqueia o arquivo.

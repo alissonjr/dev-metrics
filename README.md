@@ -1,6 +1,6 @@
 # dev-metrics
 
-> Self-hosted engineering metrics platform — pulls data from GitLab and Jira,
+> Self-hosted engineering metrics platform - pulls data from GitLab and Jira,
 > stores it in PostgreSQL and renders it in Grafana dashboards. All running
 > locally via Docker Compose. *(Project documentation is in Portuguese.)*
 
@@ -11,7 +11,7 @@
 
 Plataforma de métricas de engenharia self-hosted que coleta dados do GitLab e
 do Jira e os apresenta em dashboards interativos no Grafana. Toda a
-infraestrutura roda localmente via Docker Compose — não há dependências
+infraestrutura roda localmente via Docker Compose - não há dependências
 externas pagas.
 
 **O que você ganha:**
@@ -125,7 +125,7 @@ Variáveis opcionais (`SYNC_INTERVAL_HOURS`, `JIRA_SYNC_INTERVAL_HOURS`,
 `JIRA_ACTIVE_CATEGORIES`) estão documentadas no `.env.example`.
 
 > **Cada coletor é independente.** Se você só usa GitLab, deixe todas as
-> variáveis `JIRA_*` em branco — o container `metrics-jira-etl` vai logar
+> variáveis `JIRA_*` em branco - o container `metrics-jira-etl` vai logar
 > "desativado" e dormir, sem afetar o resto da stack. O mesmo vale para o
 > sentido contrário.
 
@@ -259,4 +259,4 @@ dashboards continuam carregando sem erros.
 
 ## Licença
 
-[MIT](LICENSE) — © 2026 Alisson Oliveira
+[MIT](LICENSE) - © 2026 Alisson Junior

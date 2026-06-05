@@ -1,6 +1,6 @@
 services:
   # ─────────────────────────────────────────────
-  # PostgreSQL — banco de dados das métricas
+  # PostgreSQL - banco de dados das métricas
   # ─────────────────────────────────────────────
   postgres:
     image: postgres:16-alpine
@@ -21,7 +21,7 @@ services:
       retries: 10
 
   # ─────────────────────────────────────────────
-  # ETL GitLab — coleta GitLab API → PostgreSQL
+  # ETL GitLab - coleta GitLab API → PostgreSQL
   # ─────────────────────────────────────────────
   gitlab-etl:
     build:
@@ -42,7 +42,7 @@ services:
         condition: service_healthy
 
   # ─────────────────────────────────────────────
-  # Grafana — dashboards de métricas
+  # Grafana - dashboards de métricas
   # Acesse: http://localhost:3000
   # Login:  admin / admin  (troque na primeira vez)
   # ─────────────────────────────────────────────
@@ -68,7 +68,7 @@ services:
         condition: service_healthy
 
   # ─────────────────────────────────────────────
-  # ETL Jira — coleta Jira API → PostgreSQL
+  # ETL Jira - coleta Jira API → PostgreSQL
   # ─────────────────────────────────────────────
   jira-etl:
     build:

@@ -1,5 +1,5 @@
 """
-DbLogger — grava logs estruturados no PostgreSQL e espelha no logging Python.
+DbLogger - grava logs estruturados no PostgreSQL e espelha no logging Python.
 Usa conexão própria para não interferir nas transações do coletor.
 """
 

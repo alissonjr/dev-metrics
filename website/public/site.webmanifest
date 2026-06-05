@@ -1,0 +1,14 @@
+{
+  "name": "dev-metrics",
+  "short_name": "dev-metrics",
+  "description": "Plataforma self-hosted de métricas de engenharia (GitLab + Jira para PostgreSQL, visualizado em Grafana).",
+  "start_url": "/dev-metrics/",
+  "scope": "/dev-metrics/",
+  "display": "standalone",
+  "background_color": "#09090b",
+  "theme_color": "#09090b",
+  "icons": [
+    { "src": "/dev-metrics/favicon.svg", "type": "image/svg+xml", "sizes": "any", "purpose": "any" },
+    { "src": "/dev-metrics/apple-touch-icon.png", "type": "image/png", "sizes": "180x180" }
+  ]
+}

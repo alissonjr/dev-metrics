@@ -96,16 +96,16 @@ def _get(url: str, params: dict) -> requests.Response:
         try:
             resp = _session.get(url, headers=HEADERS, params=params, timeout=90)
         except requests.exceptions.ConnectionError as e:
-            log.warning("Erro de conexão (%s) — aguardando 10s e tentando novamente.", e)
+            log.warning("Erro de conexão (%s) - aguardando 10s e tentando novamente.", e)
             time.sleep(10)
             continue
 
         if resp.status_code == 429:
             retry_after = int(resp.headers.get("Retry-After", 60))
             reset_time  = resp.headers.get("RateLimit-ResetTime", "")
-            log.warning("Rate limit atingido (429) — aguardando %ds. Reset: %s", retry_after, reset_time)
+            log.warning("Rate limit atingido (429) - aguardando %ds. Reset: %s", retry_after, reset_time)
             if _db_logger:
-                _db_logger.warning("rate_limit", f"GitLab 429 — aguardando {retry_after}s",
+                _db_logger.warning("rate_limit", f"GitLab 429 - aguardando {retry_after}s",
                                    details={"reset_time": reset_time})
             time.sleep(retry_after + 1)
             continue
@@ -120,7 +120,7 @@ def paginate(url: str, params: dict = {}, label: str = "") -> Generator[dict, No
         resp = _get(url, {**params, "per_page": PER_PAGE, "page": page})
 
         if resp.status_code == 404:
-            log.debug("404 em %s — ignorando.", url)
+            log.debug("404 em %s - ignorando.", url)
             return
         resp.raise_for_status()
 
@@ -131,7 +131,7 @@ def paginate(url: str, params: dict = {}, label: str = "") -> Generator[dict, No
 
         total_pages = int(resp.headers.get("X-Total-Pages", 1))
         if label and total_pages > 1:
-            log.debug("  %s — página %d/%d", label, page, total_pages)
+            log.debug("  %s - página %d/%d", label, page, total_pages)
         if page >= total_pages:
             break
         page += 1
@@ -142,7 +142,7 @@ def paginate(url: str, params: dict = {}, label: str = "") -> Generator[dict, No
         if remaining < limit * 0.1:   # abaixo de 10% do limite
             reset_in = max(0, int(resp.headers.get("RateLimit-Reset", 0)) - int(time.time()))
             wait     = min(reset_in + 1, 30)
-            log.warning("Rate limit baixo (%d/%d restantes) — aguardando %ds.", remaining, limit, wait)
+            log.warning("Rate limit baixo (%d/%d restantes) - aguardando %ds.", remaining, limit, wait)
             time.sleep(wait)
 
 
@@ -502,7 +502,7 @@ def collect_project_data(conn, project: dict, since: str, dep_since: str,
     mr_params = {"state": "all", "updated_after": since, "scope": "all"}
     mr_count = 0
     for mr in paginate(mr_url, mr_params, f"MRs {name}"):
-        # O endpoint de lista não retorna changes_count — busca individual
+        # O endpoint de lista não retorna changes_count - busca individual
         if mr.get("changes_count") is None:
             detail = _get(
                 f"{GITLAB_URL}/api/v4/projects/{pid}/merge_requests/{mr['iid']}",
@@ -605,7 +605,7 @@ def run_sync() -> None:
         if deploy_count == 0:
             dep_since = (datetime.now(timezone.utc) - timedelta(days=HISTORY_DAYS)) \
                         .strftime("%Y-%m-%dT00:00:00Z")
-            log.info("Tabela gitlab_deployments vazia — backfill de %d dias (desde %s).",
+            log.info("Tabela gitlab_deployments vazia - backfill de %d dias (desde %s).",
                      HISTORY_DAYS, dep_since)
             _db_logger.info("deployments_backfill",
                             f"Backfill inicial de deployments desde {dep_since}")
@@ -661,14 +661,14 @@ def validate_env() -> bool:
     DATABASE_URL faltar.
     """
     if not os.environ.get("DATABASE_URL"):
-        log.error("DATABASE_URL ausente — verifique docker-compose.yml.")
+        log.error("DATABASE_URL ausente - verifique docker-compose.yml.")
         sys.exit(1)
 
     user_vars = ["GITLAB_URL", "GITLAB_TOKEN", "GITLAB_GROUP_ID"]
     set_vars = [v for v in user_vars if os.environ.get(v)]
 
     if not set_vars:
-        return False  # totalmente sem config — coletor desativado
+        return False  # totalmente sem config - coletor desativado
 
     missing = [v for v in user_vars if not os.environ.get(v)]
     if missing:
