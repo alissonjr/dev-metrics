@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 470" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" role="img" aria-label="System design do dev-metrics: quatro containers Docker Compose (dois coletores, PostgreSQL e Grafana) consumindo as APIs do GitLab e Jira e servindo o navegador na porta 3000">
+  <defs>
+    <marker id="ahs" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#34d399"/>
+    </marker>
+  </defs>
+
+  <rect x="1" y="1" width="918" height="468" rx="14" fill="#09090b" stroke="#27272a"/>
+
+  <text x="32" y="42" fill="#f4f4f5" font-size="20" font-weight="700" letter-spacing="-0.01em">System Design</text>
+  <text x="32" y="64" fill="#71717a" font-size="12" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">4 containers &#183; docker compose &#183; tudo self-hosted</text>
+
+  <!-- External: APIs -->
+  <g font-family="ui-monospace, SFMono-Regular, Menlo, monospace">
+    <rect x="70" y="84" width="200" height="54" rx="8" fill="#0d0d0f" stroke="#3f3f46" stroke-dasharray="4 3"/>
+    <text x="90" y="110" fill="#f4f4f5" font-size="12" font-weight="600">APIs externas</text>
+    <text x="90" y="128" fill="#a1a1aa" font-size="11">GitLab &#183; Jira (HTTPS)</text>
+  </g>
+
+  <!-- External: Browser -->
+  <g font-family="ui-monospace, SFMono-Regular, Menlo, monospace">
+    <rect x="650" y="84" width="200" height="54" rx="8" fill="#0d0d0f" stroke="#3f3f46" stroke-dasharray="4 3"/>
+    <text x="670" y="110" fill="#f4f4f5" font-size="12" font-weight="600">Navegador</text>
+    <text x="670" y="128" fill="#a1a1aa" font-size="11">engenheiro &#8594; :3000</text>
+  </g>
+
+  <!-- Docker Compose boundary -->
+  <rect x="40" y="168" width="840" height="278" rx="12" fill="#0b0b0d" stroke="#34d399" stroke-dasharray="6 4" opacity="0.95"/>
+  <text x="60" y="192" fill="#34d399" font-size="12" font-weight="700" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">docker compose &#183; rede interna metrics</text>
+
+  <!-- gitlab-etl -->
+  <g font-family="ui-monospace, SFMono-Regular, Menlo, monospace">
+    <rect x="70" y="214" width="196" height="84" rx="8" fill="#18181b" stroke="#27272a"/>
+    <rect x="70" y="214" width="4" height="84" rx="2" fill="#f59e0b"/>
+    <text x="90" y="240" fill="#f4f4f5" font-size="13" font-weight="600">metrics-gitlab-etl</text>
+    <text x="90" y="260" fill="#a1a1aa" font-size="11">Python &#183; collector.py</text>
+    <text x="90" y="280" fill="#71717a" font-size="11">sync a cada 6h</text>
+  </g>
+
+  <!-- jira-etl -->
+  <g font-family="ui-monospace, SFMono-Regular, Menlo, monospace">
+    <rect x="70" y="330" width="196" height="84" rx="8" fill="#18181b" stroke="#27272a"/>
+    <rect x="70" y="330" width="4" height="84" rx="2" fill="#60a5fa"/>
+    <text x="90" y="356" fill="#f4f4f5" font-size="13" font-weight="600">metrics-jira-etl</text>
+    <text x="90" y="376" fill="#a1a1aa" font-size="11">Python &#183; collector.py</text>
+    <text x="90" y="396" fill="#71717a" font-size="11">sync a cada 4h</text>
+  </g>
+
+  <!-- postgres -->
+  <g font-family="ui-monospace, SFMono-Regular, Menlo, monospace">
+    <rect x="372" y="266" width="196" height="96" rx="8" fill="#18181b" stroke="#34d399"/>
+    <text x="392" y="294" fill="#f4f4f5" font-size="13" font-weight="600">metrics-postgres</text>
+    <text x="392" y="314" fill="#a1a1aa" font-size="11">PostgreSQL 16 Alpine</text>
+    <text x="392" y="334" fill="#71717a" font-size="11">db: gitlab_metrics</text>
+    <text x="392" y="352" fill="#71717a" font-size="11">volume: pgdata</text>
+  </g>
+
+  <!-- grafana -->
+  <g font-family="ui-monospace, SFMono-Regular, Menlo, monospace">
+    <rect x="654" y="272" width="196" height="84" rx="8" fill="#18181b" stroke="#27272a"/>
+    <text x="674" y="298" fill="#f4f4f5" font-size="13" font-weight="600">metrics-grafana</text>
+    <text x="674" y="318" fill="#a1a1aa" font-size="11">Grafana 12.1 &#183; :3000</text>
+    <text x="674" y="338" fill="#71717a" font-size="11">dashboards provisionados</text>
+  </g>
+
+  <!-- Arrows -->
+  <g fill="none" stroke="#34d399" stroke-width="1.6">
+    <path d="M150 138 L160 212" marker-end="url(#ahs)"/>
+    <path d="M188 138 L168 328" marker-end="url(#ahs)"/>
+    <path d="M266 256 L370 296" marker-end="url(#ahs)"/>
+    <path d="M266 372 L370 332" marker-end="url(#ahs)"/>
+    <path d="M568 314 L652 314" marker-end="url(#ahs)"/>
+    <path d="M750 138 L750 270" marker-end="url(#ahs)"/>
+  </g>
+
+  <g font-family="ui-monospace, SFMono-Regular, Menlo, monospace" fill="#71717a" font-size="10">
+    <text x="278" y="270">5432</text>
+    <text x="278" y="362">5432</text>
+    <text x="578" y="308">SQL 5432</text>
+    <text x="758" y="210">HTTP 3000</text>
+    <text x="120" y="172">HTTPS</text>
+  </g>
+</svg>
